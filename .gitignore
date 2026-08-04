@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+*.log
+
+docs/reference/hackathon/
+docs/reference/cleanverse/
+docs/planning/five-day-plan.md
