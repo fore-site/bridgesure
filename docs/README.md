@@ -19,8 +19,16 @@ Source precedence:
 
 Open implementation inputs:
 
-- supported or newly issued Monad CVA address;
 - deployed escrow address;
-- verified CVI status for both participant wallets;
-- result of testing whether the escrow requires registerApass vault registration;
-- exact Monad RPC/chain ID for the selected sandbox network.
+- A-Pass records for both participants (generation is a Phase 5 sandbox write);
+- validator-pool registration path for the escrow (REGISTER_ROLE; /validator/apply vs
+  grant/register flow) and the registerApass CVA-vault requirement;
+- funding source for the demo (importer aUSDC balance is currently 0).
+
+Resolved during Phase 2 (see [environment validation](planning/environment-validation.md)):
+
+- Monad Testnet, chain ID 10143, RPC https://testnet-rpc.monad.xyz;
+- validator 0xaC7e5179C2C7f03f209136886c172eb34F161792 is deployed only on Monad Testnet:
+  EIP-1967 proxy (implementation 0x68ce853d660444ffd98d6d5d98ac8ad58241d5a9) implementing the
+  CVI IAPassComplianceValidator surface; unregistered pools revert with PoolNotRegistered();
+- supported Monad CVA: aUSDC 0xaC0893567D43C3E7e6e35a72803df05416C1f20D (no issuance needed).

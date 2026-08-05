@@ -108,7 +108,11 @@ The validator address for the selected Monad environment is:
 0xaC7e5179C2C7f03f209136886c172eb34F161792
 ~~~
 
-It must be verified with bytecode and read-only interface calls before deployment.
+It was verified (2026-08-05, Phase 2) with bytecode and read-only interface calls: deployed
+only on Monad Testnet (chain ID 10143) as a minimal EIP-1967 proxy
+(implementation `0x68ce853d660444ffd98d6d5d98ac8ad58241d5a9`); `isRegistered`/`getRulesV2`
+return empty, and `complianceVerify` reverts with `PoolNotRegistered()` for unregistered
+pools. See docs/planning/environment-validation.md.
 
 Primary methods:
 

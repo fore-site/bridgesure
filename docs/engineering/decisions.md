@@ -9,10 +9,12 @@ milestone arrays are deferred to keep the demo auditable and reproducible.
 
 ## D-002: Monad Deployment
 
-Status: accepted.
+Status: accepted; network confirmed 2026-08-05.
 
-BridgeSure deploys on the Monad environment supported by the Cleanverse sandbox. Network-specific
-addresses and chain ID remain configuration and must be checked before deployment.
+BridgeSure deploys on Monad Testnet (chain ID 10143, RPC https://testnet-rpc.monad.xyz),
+the environment on which the supplied Cleanverse validator is deployed (confirmed by
+bytecode check; see planning/environment-validation.md). Network-specific addresses and
+chain ID remain configuration-driven.
 
 ## D-003: Single-Contract CVI Pattern
 
@@ -53,10 +55,12 @@ sandbox mutations are separate opt-in commands.
 
 ## D-008: CVA Provisioning
 
-Status: pending evidence.
+Status: accepted (resolved 2026-08-05).
 
-First query supported Monad A-Tokens. Launch a dedicated CVA only if no suitable token exists and
-the exact mutation is approved.
+`POST /query_deposit_atoken_list` for `monad` returns exactly one supported pair: A-Token
+aUSDC `0xaC0893567D43C3E7e6e35a72803df05416C1f20D` (6 decimals, origin USDC
+`0x534b2f3A21130d7a60830c2Df862319e593943A3`). BridgeSure escrows the existing aUSDC;
+no token issuance is performed.
 
 ## D-009: CVA Vault Registration
 

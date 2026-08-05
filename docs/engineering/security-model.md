@@ -54,6 +54,7 @@ used for the MVP. Emergency hold/refund actions require explicit authorization a
 ## Residual Risks
 
 - Cleanverse sandbox availability and correctness are external dependencies.
-- The supplied validator address must be verified against the intended Monad environment.
+- The supplied validator address was verified (2026-08-05) against Monad Testnet; a
+  re-check before deployment is still prudent since addresses are configuration.
 - CVA vault eligibility may require a registrar operation not exposed by the documented API.
 - The demo is not a production custody, sanctions, or legal-compliance system.

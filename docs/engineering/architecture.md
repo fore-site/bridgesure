@@ -125,11 +125,14 @@ Confirmed public addresses and configuration:
 - importer: 0x4aa29d0188d81A39cBd2BF11C1791aF3fF294E3A
 - exporter: 0xaABb93dA3999765dD48a40d70054190AE3361506
 - admin/deployer: 0x13cd068321C624d63C4A1d0eA2eBd806c22B9FA7
-- Cleanverse validator (Monad environment, supplied by Cleanverse):
+- Cleanverse validator (Monad Testnet, supplied by Cleanverse; verified 2026-08-05):
   0xaC7e5179C2C7f03f209136886c172eb34F161792
+- escrow CVA (aUSDC, the only supported Monad A-Token pair; origin USDC
+  0x534b2f3A21130d7a60830c2Df862319e593943A3):
+  0xaC0893567D43C3E7e6e35a72803df05416C1f20D
 
-The CVA address and deployed escrow address are discovered or provisioned during implementation.
-The registerApass(pool, aToken, fee) requirement must be tested before live funding.
+The deployed escrow address is discovered at deployment time. The registerApass(pool,
+aToken, fee) requirement must be tested against the deployed escrow before live funding.
 
 ## 9. Failure and Recovery
 

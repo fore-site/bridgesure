@@ -89,16 +89,21 @@ CVA-vault registration.
 
 ## Sandbox Prerequisites
 
-Confirm these values before any live mutation:
+Status after Phase 2 (see docs/planning/environment-validation.md): confirmed items are
+marked; remaining items are confirmed before any live mutation:
 
 - credential role: **confirmed Issue Member**;
 - importer/buyer: `0x4aa29d0188d81A39cBd2BF11C1791aF3fF294E3A`;
 - exporter/seller: `0xaABb93dA3999765dD48a40d70054190AE3361506`;
 - deployment/admin: `0x13cd068321C624d63C4A1d0eA2eBd806c22B9FA7`;
-- usable Monad CVI records for the importer and exporter;
-- issued and supported Monad CVA/A-Token address;
+- usable Monad CVI records for the importer and exporter — **confirmed absent**; A-Pass
+  generation is a Phase 5 write mutation;
+- issued and supported Monad CVA/A-Token address — **confirmed**: aUSDC
+  `0xaC0893567D43C3E7e6e35a72803df05416C1f20D` (origin USDC
+  `0x534b2f3A21130d7a60830c2Df862319e593943A3`), the only supported pair on Monad;
 - Monad `IAPassComplianceValidator` contract address: `0xaC7e5179C2C7f03f209136886c172eb34F161792`
-  (supplied by Cleanverse; verify the network before deployment);
+  — **confirmed deployed on Monad Testnet (chain ID 10143)**, EIP-1967 proxy, CVI
+  interface verified; unregistered pools revert with `PoolNotRegistered()`;
 - deployed escrow address and owner wallet;
 - whether Cleanverse will register the escrow's CVA vault or grant a dedicated demo registrar;
 - initial RuleV2 policy and its country semantics;
