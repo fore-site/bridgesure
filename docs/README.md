@@ -10,6 +10,16 @@ Read these documents in order:
 6. [Demo runbook](runbooks/demo.md) defines provisioning and the judge-facing sequence.
 7. [Decision log](engineering/decisions.md) records choices that implementation must preserve.
 
+Planning artifacts (phase-specific):
+
+- [Five-day plan](planning/five-day-plan.md) — phase schedule and delivery allocation.
+- [Environment validation](planning/environment-validation.md) — Phase 2 read-only report.
+- [Implementation checklist](planning/implementation-checklist.md) — Phase 4 ordered tasks.
+- [Endpoint inventory](planning/endpoint-inventory.md) — Cleanverse request/response schemas.
+- [Contract spec](planning/contract-spec.md) — BridgeSureEscrow ABI, events, errors, EIP-712.
+- [Test matrix](planning/test-matrix.md) — tests mapped to acceptance criteria.
+- [Deployment checklist](planning/deployment-checklist.md) — Phase 5 mutation sequence.
+
 Source precedence:
 
 1. reference/hackathon/hackathon_docs.txt for Cleanverse API v5.6 fields and behavior.

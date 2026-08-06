@@ -7,8 +7,9 @@ Rule evidence.
 
 Start with the [documentation index](docs/README.md).
 
-Current phase: environment and read-only validation complete (2026-08-05); core
-implementation begins Aug 7 (see [five-day plan](docs/planning/five-day-plan.md)).
+Current phase: Phase 3 implementation readiness complete (2026-08-06); core
+implementation begins Aug 7 (see [five-day plan](docs/planning/five-day-plan.md)
+and [implementation checklist](docs/planning/implementation-checklist.md)).
 
 ## Repository Layout
 
