@@ -1,11 +1,12 @@
 # BridgeSure
 
-BridgeSure is a compliance-continuous escrow demo for cross-border trade on Monad. It accepts a
-Cleanverse Verified Asset, and releases milestone payments only after fresh compliance checks on
-both parties. The escrow re-verifies immediately before every release and fails closed when a
-participant's credential changes — so once the exporter is invalidated mid-trade, the next
-milestone is blocked and the funds stay put. Every decision is reason-coded on-chain and
-exportable as audit and Travel Rule evidence.
+Cross-border escrow on Monad where each payout is a fresh A-Pass + validator check, every block
+carries an on-chain reason code, and the whole trail exports as Travel Rule evidence.
+
+Milestone payments release only after fresh compliance checks on both parties. The escrow
+re-verifies immediately before every release and fails closed when a participant's credential
+changes — so once the exporter is invalidated mid-trade, the next milestone is blocked and the
+funds stay put.
 
 Start with the [documentation index](docs/README.md).
 
@@ -30,4 +31,4 @@ docs/reference/          local source material; ignored unless redistribution is
 ```
 
 Do not commit credentials, private keys, seed phrases, identity/bank data, or time-limited report
-URLs. See [AGENTS.md](AGENTS.md) for repository rules.
+URLs.

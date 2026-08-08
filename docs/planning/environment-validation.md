@@ -118,8 +118,8 @@ absence of a record must surface as a blocked decision, not a success.
 No starter kit exists in the repository or the reference documentation. The hackathon
 details reference a GitHub starter kit and sample contracts delivered separately (email).
 It was not available in the working copy, so nothing was imported. It should be requested
-from Cleanverse if it is needed before the build window; otherwise the design documents and
-AGENTS.md are sufficient to scaffold from scratch in Phase 4.
+from Cleanverse if it is needed before the build window; otherwise the design documents are
+sufficient to scaffold from scratch in Phase 4.
 
 ## 7. Local Environment Files
 

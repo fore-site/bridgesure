@@ -31,8 +31,8 @@ Dependencies: none.
 
 - [ ] Root `package.json` with `packageManager: pnpm@11.20.0` and `engines.node` matching
       `.nvmrc` (Node 24 LTS).
-- [ ] Root scripts exactly as documented in AGENTS.md: dev, build, lint, format:check, typecheck,
-      test, test:e2e, test:contracts, check, cleanverse:smoke.
+- [ ] Root scripts: dev, build, lint, format:check, typecheck, test, test:e2e, test:contracts,
+      check, cleanverse:smoke.
 - [ ] `pnpm-workspace.yaml` with `apps/*`, `packages/*`.
 - [ ] `packages/config/` with shared strict TypeScript, ESLint, and Prettier configuration.
 - [ ] `contracts/` Foundry project: `foundry.toml` (solc version, optimizer), remappings for

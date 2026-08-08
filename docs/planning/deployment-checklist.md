@@ -90,8 +90,7 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 
 - [ ] Run `pnpm check` (root) and `forge fmt --check`, `forge build`, `forge test` (contracts/).
 - [ ] Finish README, configuration guide, deployment addresses, screenshots, and judge runbook.
-- [ ] Update `.env.example` if any configuration contract changed; update AGENTS.md if
-      conventions changed.
+- [ ] Update `.env.example` if any configuration contract changed.
 
 ## Commit expectations (Phase 5)
 

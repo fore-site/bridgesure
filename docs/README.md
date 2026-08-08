@@ -23,8 +23,7 @@ Source precedence:
 
 1. reference/hackathon/hackathon_docs.txt for Cleanverse API v5.6 fields and behavior.
 2. CCP CVA/CVI PDFs for Solidity interfaces, RuleV2 semantics, and integration patterns.
-3. AGENTS.md for repository conventions and completion requirements.
-4. These design documents for BridgeSure-specific implementation decisions.
+3. These design documents for BridgeSure-specific implementation decisions.
 
 Open implementation inputs:
 
