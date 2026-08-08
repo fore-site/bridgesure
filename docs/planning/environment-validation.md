@@ -136,18 +136,18 @@ sufficient to scaffold the implementation from scratch.
 
 ## 8. Updated Open Questions and Risk Register
 
-| Item                                     | Status              | Notes                                                                               |
-| ---------------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
-| Monad network + chain ID                 | RESOLVED            | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                          |
-| Validator address + network              | RESOLVED            | Testnet-only deployment; implementation confirmed CVI interface                     |
-| Cleanverse credentials                   | RESOLVED            | live, read-only calls succeeded 2026-08-05                                          |
-| Supported Monad CVA address              | RESOLVED            | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)    |
-| Participant A-Pass records               | RESOLVED 2026-08-08 | both generated (cvRecordId 1867/1869, tier 50) and `verify_apass` code 4 eligible   |
-| Escrow registration path (REGISTER_ROLE) | PENDING             | `/validator/apply` vs grant/register flow to confirm with Cleanverse                |
-| `registerApass` CVA-vault requirement    | PENDING             | needs deployed escrow; test during provisioning (D-009)                             |
-| Cleanverse reference material            | LOCAL ONLY          | not redistributed; design docs are sufficient to scaffold                           |
-| Funding source for demo                  | PENDING             | `POST /faucet` reachable (5 aUSDC/request cap) but its Monad aUSDC pool is unbacked |
-|                                          |                     | (`ERC20InsufficientBalance` on the faucet wallet); need a Cleanverse transfer       |
+| Item                                     | Status              | Notes                                                                                |
+| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| Monad network + chain ID                 | RESOLVED            | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                           |
+| Validator address + network              | RESOLVED            | Testnet-only deployment; implementation confirmed CVI interface                      |
+| Cleanverse credentials                   | RESOLVED            | live, read-only calls succeeded 2026-08-05                                           |
+| Supported Monad CVA address              | RESOLVED            | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)     |     | Participant A-Pass records | RESOLVED 2026-08-08 | both generated (cvRecordId 1867/1869, tier 50) and `verify_apass` code 4 eligible |
+| Escrow registration path (REGISTER_ROLE) | RESOLVED 2026-08-08 | gateway verifies owner sig against `owner()` of the subject; escrow exposes owner(); |
+|                                          |                     | deployed + registered as pool (registered=true, 1 rule, unpaused)                    |
+| `registerApass` CVA-vault requirement    | PENDING             | needs deployed escrow; test during provisioning (D-009)                              |
+| Cleanverse reference material            | LOCAL ONLY          | not redistributed; design docs are sufficient to scaffold                            |
+| Funding source for demo                  | PENDING             | `POST /faucet` reachable (5 aUSDC/request cap) but its Monad aUSDC pool is unbacked  |
+|                                          |                     | (`ERC20InsufficientBalance` on the faucet wallet); need a Cleanverse transfer        |
 
 ## 9. Exit Criteria
 

@@ -85,6 +85,14 @@ contract BridgeSureEscrow is ReentrancyGuard {
     uint256 public releasedAmount;
     bool public funded;
 
+    /// @notice Owner accessor required by the Cleanverse validator gateway:
+    ///         pool registration verifies the EIP-191 owner signature against
+    ///         owner() of the subject contract. Returns the immutable admin so
+    ///         the admin wallet can register the escrow as its own pool.
+    function owner() external view returns (address) {
+        return admin;
+    }
+
     mapping(uint256 => bool) public milestoneReleased; // index 1 and 2
     mapping(uint256 => bool) public milestoneBlocked;
 

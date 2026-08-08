@@ -62,8 +62,13 @@ and docs/runbooks/demo.md). Read-only checks run by default.
       `BRIDGESURE_VALIDATOR_POOL_ADDRESS` on success.
 - [x] `pnpm provision:verify-pool` implemented (read-only): `/validator/is_register`,
       `/validator/rules`, `/validator/is_paused`, and both participants' A-Pass verify codes.
-- [ ] Resolve open item 1 at mutation time: REGISTER_ROLE path (pre-granted vs `/grant`).
-- [ ] Confirm registration landed with `pnpm provision:verify-pool`.
+- [x] Open item 1 resolved (2026-08-08): the gateway verifies the EIP-191 owner signature
+      against `owner()` of the subject contract, so `BridgeSureEscrow` now exposes
+      `owner()` (returns admin) and the admin wallet's signature validates. Escrow
+      `0x6391427d323a43427c42df61369862f83f1f68ca` deployed + registered as its own pool
+      (tx `0xfd2497c511e0c274fc40bcdb88b12ed790a1ca0eb8bc98a6ca492f311ae99c93`).
+- [x] Registration confirmed live with `pnpm provision:verify-pool`: registered=true,
+      paused=false, 1 rule; both participants verify code 4.
 - [ ] If needed, apply the on-chain RuleV2 via contract wrappers or `/validator/set_rule`
       (wait for the previous write tx to confirm before the next mutation).
 

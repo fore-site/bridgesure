@@ -351,6 +351,12 @@ contract BridgeSureEscrowTest is EscrowTestBase {
         assertFalse(escrow.funded());
     }
 
+    function test_OwnerReturnsAdmin() public view {
+        // The validator gateway verifies pool-registration owner signatures
+        // against owner() of the subject contract (AGENTS.md / validator docs).
+        assertEq(escrow.owner(), admin);
+    }
+
     function test_FundingOnlyOnce() public {
         _fund();
         vm.prank(importer);

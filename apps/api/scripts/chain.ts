@@ -28,6 +28,7 @@ import type { Config } from '../src/config.js';
 // the ReleaseAuthorization struct fields are positional here; submit-release.ts
 // passes them as a plain array, matching the contract's encoding exactly.
 export const escrowAbi = parseAbi([
+  'constructor(address,address,address,address,address,address,bytes32,uint256,uint256,uint256,uint256)',
   'function fund(uint256 amount)',
   'function releaseMilestone((bytes32,uint256,address,address,address,uint256,uint256,uint256,bytes32) auth, bytes signature)',
   'function funded() view returns (bool)',
