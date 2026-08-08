@@ -251,6 +251,96 @@ export const validatorTxDataSchema = z.object({
 });
 export type ValidatorTxData = z.infer<typeof validatorTxDataSchema>;
 
+// ---------------------------------------------------------------------------
+// /validator/grant — grant REGISTER_ROLE (sandbox write, confirmation-gated)
+// ---------------------------------------------------------------------------
+
+export const validatorGrantRequestSchema = z.object({
+  chain: chainSchema,
+  address: addressSchema,
+  owner_signature: z.string(),
+});
+export type ValidatorGrantRequest = z.infer<typeof validatorGrantRequestSchema>;
+
+export const validatorGrantDataSchema = z.object({
+  chain: chainSchema,
+  address: addressSchema,
+  tx_hash: z.string(),
+});
+export type ValidatorGrantData = z.infer<typeof validatorGrantDataSchema>;
+
+// ---------------------------------------------------------------------------
+// /query_deposit_atoken_list — supported CVA discovery (read-only)
+// ---------------------------------------------------------------------------
+
+export const tokenInfoSchema = z.object({
+  address: addressSchema,
+  name: z.string(),
+  symbol: z.string(),
+  decimals: z.number().int().nonnegative(),
+  icon: z.string().optional(),
+});
+export type TokenInfo = z.infer<typeof tokenInfoSchema>;
+
+export const depositAtokenInfoSchema = z.object({
+  origin_token: tokenInfoSchema,
+  atoken: tokenInfoSchema,
+  accesscore_address: addressSchema,
+  apass_address: addressSchema,
+});
+export type DepositAtokenInfo = z.infer<typeof depositAtokenInfoSchema>;
+
+export const queryDepositAtokenListRequestSchema = z.object({
+  chain: chainSchema,
+  symbol: z.string().optional(),
+  address: addressSchema.optional(),
+});
+export type QueryDepositAtokenListRequest = z.infer<typeof queryDepositAtokenListRequestSchema>;
+
+export const depositAtokenListDataSchema = z.object({
+  chain: chainSchema,
+  // The sandbox returns `tokens: null` when a filter matches nothing; treat
+  // null/missing as an empty list (diagnostic read, not the release path).
+  tokens: z
+    .array(depositAtokenInfoSchema)
+    .nullish()
+    .transform((t) => t ?? []),
+});
+export type DepositAtokenListData = z.infer<typeof depositAtokenListDataSchema>;
+
+// ---------------------------------------------------------------------------
+// Validator pool diagnostics (read-only; exact sandbox shapes are confirmed
+// by the smoke run, so unknown extra fields are tolerated but known fields
+// must still validate — diagnostic reads, not the trusted release path).
+// ---------------------------------------------------------------------------
+
+export const validatorPoolReadRequestSchema = z.object({
+  chain: chainSchema,
+  contract_address: addressSchema,
+});
+export type ValidatorPoolReadRequest = z.infer<typeof validatorPoolReadRequestSchema>;
+
+export const validatorIsRegisterDataSchema = z
+  .object({
+    registered: z.boolean(),
+  })
+  .passthrough();
+export type ValidatorIsRegisterData = z.infer<typeof validatorIsRegisterDataSchema>;
+
+export const validatorRulesDataSchema = z
+  .object({
+    rules: z.array(z.unknown()).default([]),
+  })
+  .passthrough();
+export type ValidatorRulesData = z.infer<typeof validatorRulesDataSchema>;
+
+export const validatorIsPausedDataSchema = z
+  .object({
+    paused: z.boolean(),
+  })
+  .passthrough();
+export type ValidatorIsPausedData = z.infer<typeof validatorIsPausedDataSchema>;
+
 /** Parse an envelope's data field, failing closed on any mismatch. */
 export function parseData<T>(schema: z.ZodType<T>, envelope: Envelope): T {
   if (!isSuccessEnvelope(envelope)) {

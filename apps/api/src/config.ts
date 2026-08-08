@@ -12,6 +12,15 @@ const optionalAddress = z.preprocess(
     .optional(),
 );
 
+/** Optional private keys (0x + 64 hex chars); blank values count as absent. */
+const optionalPrivateKey = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/)
+    .optional(),
+);
+
 const envSchema = z.object({
   CLEANVERSE_BASE_URL: z.string().url().default(DEFAULT_BASE_URL),
   // demo (default): scripted sandbox mock, works offline with no credentials.
@@ -32,6 +41,13 @@ const envSchema = z.object({
   BRIDGESURE_ESCROW_ADDRESS: optionalAddress,
   BRIDGESURE_VALIDATOR_POOL_ADDRESS: optionalAddress,
   BRIDGESURE_RELEASE_SIGNER_PRIVATE_KEY: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  // Phase 5 live provisioning keys (optional; only set for sandbox writes).
+  // deployer: contract admin wallet (deploy + hold + release submission).
+  BRIDGESURE_DEPLOYER_PRIVATE_KEY: optionalPrivateKey,
+  // importer: funds the escrow on-chain (approve + fund).
+  BRIDGESURE_IMPORTER_PRIVATE_KEY: optionalPrivateKey,
+  // validator owner: EIP-191 owner signatures for pool registration/grant.
+  BRIDGESURE_VALIDATOR_OWNER_PRIVATE_KEY: optionalPrivateKey,
   BRIDGESURE_TRADE_ID: z.string().default('bridgesure-demo-trade-001'),
   BRIDGESURE_MILESTONE_ONE_AMOUNT: z.coerce.bigint().default(400n * 10n ** 6n),
   BRIDGESURE_MILESTONE_TWO_AMOUNT: z.coerce.bigint().default(600n * 10n ** 6n),

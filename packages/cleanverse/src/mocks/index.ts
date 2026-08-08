@@ -1,16 +1,24 @@
 /* eslint-disable @typescript-eslint/require-await -- Mock methods return Promises to satisfy CleanverseApi; there is no real I/O to await. */
 import type {
+  DepositAtokenListData,
   GenerateApassData,
   GenerateApassRequest,
   QueryApassData,
   QueryApassRequest,
+  QueryDepositAtokenListRequest,
   QueryTxsData,
   QueryTxsRequest,
   TravelRuleData,
   TravelRuleRequest,
   UpdateStatusData,
   UpdateStatusRequest,
+  ValidatorGrantData,
+  ValidatorGrantRequest,
+  ValidatorIsPausedData,
+  ValidatorIsRegisterData,
+  ValidatorPoolReadRequest,
   ValidatorRegisterRequest,
+  ValidatorRulesData,
   ValidatorTxData,
   ValidatorVerifyData,
   ValidatorVerifyRequest,
@@ -151,6 +159,11 @@ export class MockCleanverseClient implements CleanverseApi {
     };
   }
 
+  async validatorGrant(req: ValidatorGrantRequest): Promise<ValidatorGrantData> {
+    this.maybeFail('/validator/grant');
+    return { chain: req.chain, address: req.address, tx_hash: '0xmock-grant-tx' };
+  }
+
   async validatorSetPaused(req: {
     chain:
       | 'monad'
@@ -168,5 +181,45 @@ export class MockCleanverseClient implements CleanverseApi {
   }): Promise<ValidatorTxData> {
     this.maybeFail('/validator/set_paused');
     return { chain: req.chain, contract_address: req.contract_address, tx_hash: '0xmock-pause-tx' };
+  }
+
+  async queryDepositAtokenList(req: QueryDepositAtokenListRequest): Promise<DepositAtokenListData> {
+    this.maybeFail('/query_deposit_atoken_list');
+    return {
+      chain: req.chain,
+      tokens: [
+        {
+          origin_token: {
+            address: '0x0000000000000000000000000000000000000001',
+            name: 'Mock USDC',
+            symbol: 'usdc',
+            decimals: 6,
+          },
+          atoken: {
+            address: '0x0000000000000000000000000000000000000002',
+            name: 'Mock aUSDC',
+            symbol: 'ausdc',
+            decimals: 6,
+          },
+          accesscore_address: '0x0000000000000000000000000000000000000003',
+          apass_address: '0x0000000000000000000000000000000000000004',
+        },
+      ],
+    };
+  }
+
+  async validatorIsRegister(req: ValidatorPoolReadRequest): Promise<ValidatorIsRegisterData> {
+    this.maybeFail('/validator/is_register');
+    return { chain: req.chain, contract_address: req.contract_address, registered: true };
+  }
+
+  async validatorRules(req: ValidatorPoolReadRequest): Promise<ValidatorRulesData> {
+    this.maybeFail('/validator/rules');
+    return { chain: req.chain, contract_address: req.contract_address, rules: [] };
+  }
+
+  async validatorIsPaused(req: ValidatorPoolReadRequest): Promise<ValidatorIsPausedData> {
+    this.maybeFail('/validator/is_paused');
+    return { chain: req.chain, contract_address: req.contract_address, paused: false };
   }
 }

@@ -11,7 +11,18 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "provision": "tsx scripts/help.ts",
+    "provision:apass": "tsx scripts/generate-apass.ts",
+    "provision:register-pool": "tsx scripts/register-pool.ts",
+    "provision:grant": "tsx scripts/grant-register-role.ts",
+    "provision:freeze-exporter": "tsx scripts/freeze-exporter.ts",
+    "provision:unfreeze-exporter": "tsx scripts/unfreeze-exporter.ts",
+    "provision:set-paused": "tsx scripts/set-paused.ts",
+    "provision:verify-pool": "tsx scripts/verify-pool.ts",
+    "provision:deploy-escrow": "tsx scripts/deploy-escrow.ts",
+    "provision:fund-escrow": "tsx scripts/fund-escrow.ts",
+    "provision:submit-release": "tsx scripts/submit-release.ts"
   },
   "dependencies": {
     "@bridgesure/cleanverse": "workspace:*",

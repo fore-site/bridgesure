@@ -20,7 +20,18 @@
     "test:e2e": "pnpm --filter @bridgesure/api test:e2e",
     "test:contracts": "cd contracts && forge test",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
-    "cleanverse:smoke": "pnpm --filter @bridgesure/cleanverse smoke"
+    "cleanverse:smoke": "pnpm --filter @bridgesure/cleanverse smoke",
+    "deploy:escrow": "cd contracts && forge build && cd .. && pnpm --filter @bridgesure/api provision:deploy-escrow",
+    "provision": "pnpm --filter @bridgesure/api provision",
+    "provision:apass": "pnpm --filter @bridgesure/api provision:apass",
+    "provision:register-pool": "pnpm --filter @bridgesure/api provision:register-pool",
+    "provision:grant": "pnpm --filter @bridgesure/api provision:grant",
+    "provision:freeze-exporter": "pnpm --filter @bridgesure/api provision:freeze-exporter",
+    "provision:unfreeze-exporter": "pnpm --filter @bridgesure/api provision:unfreeze-exporter",
+    "provision:set-paused": "pnpm --filter @bridgesure/api provision:set-paused",
+    "provision:verify-pool": "pnpm --filter @bridgesure/api provision:verify-pool",
+    "provision:fund-escrow": "pnpm --filter @bridgesure/api provision:fund-escrow",
+    "provision:submit-release": "pnpm --filter @bridgesure/api provision:submit-release"
   },
   "devDependencies": {
     "@bridgesure/config": "workspace:*",

@@ -1,7 +1,12 @@
+import { setDefaultResultOrder } from 'node:dns';
 import { CleanverseClient } from '@bridgesure/cleanverse';
 import { loadConfig } from './config.js';
 import { DemoCleanverseClient } from './demo-cleanverse.js';
 import { buildServer } from './server.js';
+
+// Prefer IPv4 for Cleanverse API calls: the sandbox's IPv6 records time out on
+// some networks and undici (unlike curl) does not fall back to IPv4.
+setDefaultResultOrder('ipv4first');
 
 /**
  * API boot entry (see package.json dev/start scripts).

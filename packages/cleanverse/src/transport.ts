@@ -1,17 +1,26 @@
 import { randomUUID } from 'node:crypto';
 import {
+  depositAtokenListDataSchema,
   envelopeSchema,
+  type DepositAtokenListData,
   type GenerateApassRequest,
   type GenerateApassData,
   type QueryApassData,
   type QueryApassRequest,
+  type QueryDepositAtokenListRequest,
   type QueryTxsData,
   type QueryTxsRequest,
   type TravelRuleData,
   type TravelRuleRequest,
   type UpdateStatusData,
   type UpdateStatusRequest,
+  type ValidatorGrantData,
+  type ValidatorGrantRequest,
+  type ValidatorIsPausedData,
+  type ValidatorIsRegisterData,
+  type ValidatorPoolReadRequest,
   type ValidatorRegisterRequest,
+  type ValidatorRulesData,
   type ValidatorTxData,
   type ValidatorVerifyData,
   type ValidatorVerifyRequest,
@@ -22,6 +31,10 @@ import {
   queryTxsDataSchema,
   travelRuleDataSchema,
   updateStatusDataSchema,
+  validatorGrantDataSchema,
+  validatorIsPausedDataSchema,
+  validatorIsRegisterDataSchema,
+  validatorRulesDataSchema,
   validatorTxDataSchema,
   validatorVerifyDataSchema,
   verifyApassDataSchema,
@@ -44,11 +57,16 @@ export interface CleanverseApi {
   updateStatus(req: UpdateStatusRequest): Promise<UpdateStatusData>;
   generateApass(req: GenerateApassRequest): Promise<GenerateApassData>;
   validatorRegister(req: ValidatorRegisterRequest): Promise<ValidatorTxData>;
+  validatorGrant(req: ValidatorGrantRequest): Promise<ValidatorGrantData>;
   validatorSetPaused(req: {
     chain: string;
     contract_address: string;
     paused: boolean;
   }): Promise<ValidatorTxData>;
+  queryDepositAtokenList(req: QueryDepositAtokenListRequest): Promise<DepositAtokenListData>;
+  validatorIsRegister(req: ValidatorPoolReadRequest): Promise<ValidatorIsRegisterData>;
+  validatorRules(req: ValidatorPoolReadRequest): Promise<ValidatorRulesData>;
+  validatorIsPaused(req: ValidatorPoolReadRequest): Promise<ValidatorIsPausedData>;
 }
 
 export interface TransportOptions {
@@ -174,6 +192,11 @@ export class CleanverseClient implements CleanverseApi {
     return validatorTxDataSchema.parse(data);
   }
 
+  async validatorGrant(req: ValidatorGrantRequest): Promise<ValidatorGrantData> {
+    const data = await this.post('/validator/grant', req, true);
+    return validatorGrantDataSchema.parse(data);
+  }
+
   async validatorSetPaused(req: {
     chain: string;
     contract_address: string;
@@ -181,6 +204,26 @@ export class CleanverseClient implements CleanverseApi {
   }): Promise<ValidatorTxData> {
     const data = await this.post('/validator/set_paused', req, true);
     return validatorTxDataSchema.parse(data);
+  }
+
+  async queryDepositAtokenList(req: QueryDepositAtokenListRequest): Promise<DepositAtokenListData> {
+    const data = await this.post('/query_deposit_atoken_list', req, false);
+    return depositAtokenListDataSchema.parse(data);
+  }
+
+  async validatorIsRegister(req: ValidatorPoolReadRequest): Promise<ValidatorIsRegisterData> {
+    const data = await this.post('/validator/is_register', req, false);
+    return validatorIsRegisterDataSchema.parse(data);
+  }
+
+  async validatorRules(req: ValidatorPoolReadRequest): Promise<ValidatorRulesData> {
+    const data = await this.post('/validator/rules', req, false);
+    return validatorRulesDataSchema.parse(data);
+  }
+
+  async validatorIsPaused(req: ValidatorPoolReadRequest): Promise<ValidatorIsPausedData> {
+    const data = await this.post('/validator/is_paused', req, false);
+    return validatorIsPausedDataSchema.parse(data);
   }
 }
 

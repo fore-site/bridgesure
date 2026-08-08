@@ -26,35 +26,44 @@ and docs/runbooks/demo.md). Read-only checks run by default.
    can receive and transfer aUSDC; use `registerApass(pool, aToken, fee)` only if required and
    accessible through the documented role path; escalate to Cleanverse support only if the test
    proves a missing capability.
-3. Funding source: importer aUSDC balance is 0; obtain funds via the faucet or a transfer once
-   provisioning is approved.
+3. Funding source: importer aUSDC balance is 0; `POST /faucet` is reachable but its Monad aUSDC
+   pool is unbacked (`ERC20InsufficientBalance` on the faucet's own wallet; 5 aUSDC per-request
+   cap) — obtain funds via a Cleanverse transfer. The faucet path itself is validated: it
+   accepted the request once the recipient had an A-Pass (see A-Pass generation below).
 
 ## Ordered checklist
 
 ### Pre-flight (read-only, no confirmation needed)
 
-- [ ] `pnpm cleanverse:smoke`: read-only checks against sandbox (base URL reachable, supported
-      A-Token list, participant A-Pass state, validator registration status).
+- [x] `pnpm cleanverse:smoke` implemented: read-only checks against sandbox (base URL
+      reachable, supported A-Token list, participant A-Pass state, validator registration
+      status) — `packages/cleanverse/src/smoke.ts`.
+- [ ] Run it against the sandbox once credentials are available.
 - [ ] Re-verify validator bytecode/read methods on Monad Testnet (addresses are configuration;
       prudent re-check before deployment).
 - [ ] Confirm `BRIDGESURE_*` values in `.env` match `.env.example` (no secrets committed).
 
 ### Contract deployment (writes)
 
-- [ ] Deploy BridgeSureEscrow with: CVA aUSDC, validator address (immutable), importer, exporter,
-      admin, release-signer address, trade ID, milestone amounts, expiry/hold settings.
-- [ ] Record the deployed escrow address; set `BRIDGESURE_ESCROW_ADDRESS` locally (never commit
-      a real value if it is a secret — addresses are public, so documenting the deployed address
-      is expected for the demo runbook).
+- [x] `pnpm deploy:escrow --confirm` implemented (`apps/api/scripts/deploy-escrow.ts`): builds
+      the contracts, prints the constructor plan, deploys, and writes
+      `BRIDGESURE_ESCROW_ADDRESS` into `.env`. Requires `BRIDGESURE_DEPLOYER_PRIVATE_KEY`.
+- [ ] Run it with a funded deployer wallet; record the deployed address in the runbook.
 
 ### Validator pool registration and rules (writes)
 
-- [ ] Resolve open item 1: obtain/confirm REGISTER_ROLE for the escrow or the deployer address.
-- [ ] Register the escrow as a compliance pool via `/validator/register` with the initial
-      compatibility-form rule (`allowed_group`, `allowed_sub_group`, `min_tier`, `min_sub_tier`,
-      `is_black_list`, `countries`) and the EIP-191 owner signature.
-- [ ] Confirm registration landed: `/validator/is_register` returns registered, and
-      `/validator/rules` returns the configured rule.
+- [x] A-Pass generation validated live (2026-08-08): importer + exporter A-Passes created
+      (`provision:apass`, both `verify_apass` code 4 eligible) after fixing the sandbox's
+      `expirationTime`-required and `idType` whitelist requirements (regression tests added).
+- [x] `pnpm provision:grant --address <escrow>` implemented (open-item 1 helper;
+      `/validator/grant` with the EIP-191 owner signature).
+- [x] `pnpm provision:register-pool` implemented: `/validator/register` with the
+      compatibility-form rule (default: unrestricted) and the EIP-191 owner signature; writes
+      `BRIDGESURE_VALIDATOR_POOL_ADDRESS` on success.
+- [x] `pnpm provision:verify-pool` implemented (read-only): `/validator/is_register`,
+      `/validator/rules`, `/validator/is_paused`, and both participants' A-Pass verify codes.
+- [ ] Resolve open item 1 at mutation time: REGISTER_ROLE path (pre-granted vs `/grant`).
+- [ ] Confirm registration landed with `pnpm provision:verify-pool`.
 - [ ] If needed, apply the on-chain RuleV2 via contract wrappers or `/validator/set_rule`
       (wait for the previous write tx to confirm before the next mutation).
 
@@ -67,17 +76,19 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 ### Funding and release (writes)
 
 - [ ] Resolve open item 3: obtain importer aUSDC (faucet or transfer).
-- [ ] Fund the escrow (importer approves + `fund(amount)`); verify escrow balance and `Funded`
-      event.
-- [ ] Run fresh A-Pass and validator checks; release milestone one with a signed authorization;
-      verify exporter balance, `MilestoneReleased` event, and transaction hash.
+- [x] `pnpm provision:fund-escrow` implemented: prints balances, requires `--confirm`, then
+      approves + `fund(amount)` from the importer wallet.
+- [x] `pnpm provision:submit-release --payload <release.json>` implemented: submits a
+      server-signed authorization on-chain; the contract re-runs CVI checks before the transfer.
+- [ ] Fund the escrow; verify escrow balance and `Funded` event. Release milestone one; verify
+      exporter balance, `MilestoneReleased` event, and transaction hash.
 
 ### Freeze and blocked release (writes)
 
-- [ ] Freeze/invalidate the exporter A-Pass via `/update_status` with `status: "2"` and a
-      `blacklistReason` (dedicated demo participant).
-- [ ] Attempt milestone two with fresh checks; assert it fails closed before any state or balance
-      change (blocked attempt recorded, balances unchanged).
+- [x] `pnpm provision:freeze-exporter` / `pnpm provision:unfreeze-exporter` implemented:
+      `/update_status` status "2"/"1" with `blacklistReason`, confirmation-gated.
+- [ ] Freeze the exporter, then attempt milestone two with fresh checks; assert it fails closed
+      before any state or balance change (blocked attempt recorded, balances unchanged).
 
 ### Evidence export (read)
 
@@ -97,8 +108,9 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 - feat(api): complete trade and audit endpoints
 - feat(web): build BridgeSure compliance console — DONE (landing page + console in `apps/web`)
 - test(e2e): cover successful and fail-closed milestones
-- feat(integration): add opt-in Cleanverse provisioning and smoke scripts
-- docs: add deployment and reproducible demo instructions
+- feat(integration): add opt-in Cleanverse provisioning and smoke scripts — DONE
+  (`packages/cleanverse/src/smoke.ts`, `apps/api/src/provisioning.ts`, `apps/api/scripts/`)
+- docs: add deployment and reproducible demo instructions — DONE (runbook + this checklist)
 - fix: address full-suite and integration findings
 
 ## Rollback / recovery notes

@@ -102,16 +102,21 @@ the faucet or a transfer once provisioning is approved.
 
 ### A-Pass State (`POST /query_apass`, chain=monad)
 
-| Wallet                                                | Result                                            |
-| ----------------------------------------------------- | ------------------------------------------------- |
-| importer `0x4aa29d0188d81A39cBd2BF11C1791aF3fF294E3A` | `code=0002 [CN_001] apass not found for user ...` |
-| exporter `0xaABb93dA3999765dD48a40d70054190AE3361506` | `code=0002 [CN_001] apass not found for user ...` |
+Original read-only finding (2026-08-05): neither participant had an A-Pass record; the API
+returned `code=0002 [CN_001] apass not found for user ...`, the fail-closed result the
+design requires.
 
-Neither participant has an A-Pass record on Monad yet. `verify_apass` will therefore
-return a negative result until A-Pass records are generated (a sandbox write that requires
-explicit confirmation). The API returns a clean, typed failure
-(`code=0002`, machine message prefix `CN_001`), which matches the fail-closed design:
-absence of a record must surface as a blocked decision, not a success.
+Resolved live on 2026-08-08 (Phase 5 provisioning, explicit user confirmation):
+
+| Wallet                                                | A-Pass result (post-generation)                              |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| importer `0x4aa29d0188d81A39CBd2BF11C1791aF3fF294E3A` | `cvRecordId=1867`, tier 50, `verify_apass` code 4 (eligible) |
+| exporter `0xaABb93dA3999765dD48a40d70054190AE3361506` | `cvRecordId=1869`, tier 50, `verify_apass` code 4 (eligible) |
+
+Generation required two sandbox-enforced request constraints (now in the provisioning
+code with regression tests): `expirationTime` is required (omitting it returns
+`[400] The expiration time cannot be null`), and `idType` must be one of `ID_CARD`,
+`PASSPORT`, `DRIVER_LICENSE`, `HK_MACAO_TAIWAN_PASS`, `RESIDENCE_PERMIT`.
 
 ## 6. Reference Materials
 
@@ -131,17 +136,18 @@ sufficient to scaffold the implementation from scratch.
 
 ## 8. Updated Open Questions and Risk Register
 
-| Item                                     | Status        | Notes                                                                               |
-| ---------------------------------------- | ------------- | ----------------------------------------------------------------------------------- |
-| Monad network + chain ID                 | RESOLVED      | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                          |
-| Validator address + network              | RESOLVED      | Testnet-only deployment; implementation confirmed CVI interface                     |
-| Cleanverse credentials                   | RESOLVED      | live, read-only calls succeeded 2026-08-05                                          |
-| Supported Monad CVA address              | RESOLVED      | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)    |
-| Participant A-Pass records               | PENDING WRITE | neither importer nor exporter has an A-Pass on Monad; generation is a sandbox write |
-| Escrow registration path (REGISTER_ROLE) | PENDING       | `/validator/apply` vs grant/register flow to confirm with Cleanverse                |
-| `registerApass` CVA-vault requirement    | PENDING       | needs deployed escrow; test during provisioning (D-009)                             |
-| Cleanverse reference material            | LOCAL ONLY    | not redistributed; design docs are sufficient to scaffold                           |
-| Funding source for demo                  | PENDING       | importer aUSDC balance is 0; faucet or transfer required during provisioning        |
+| Item                                     | Status              | Notes                                                                               |
+| ---------------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| Monad network + chain ID                 | RESOLVED            | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                          |
+| Validator address + network              | RESOLVED            | Testnet-only deployment; implementation confirmed CVI interface                     |
+| Cleanverse credentials                   | RESOLVED            | live, read-only calls succeeded 2026-08-05                                          |
+| Supported Monad CVA address              | RESOLVED            | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)    |
+| Participant A-Pass records               | RESOLVED 2026-08-08 | both generated (cvRecordId 1867/1869, tier 50) and `verify_apass` code 4 eligible   |
+| Escrow registration path (REGISTER_ROLE) | PENDING             | `/validator/apply` vs grant/register flow to confirm with Cleanverse                |
+| `registerApass` CVA-vault requirement    | PENDING             | needs deployed escrow; test during provisioning (D-009)                             |
+| Cleanverse reference material            | LOCAL ONLY          | not redistributed; design docs are sufficient to scaffold                           |
+| Funding source for demo                  | PENDING             | `POST /faucet` reachable (5 aUSDC/request cap) but its Monad aUSDC pool is unbacked |
+|                                          |                     | (`ERC20InsufficientBalance` on the faucet wallet); need a Cleanverse transfer       |
 
 ## 9. Exit Criteria
 

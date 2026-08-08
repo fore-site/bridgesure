@@ -8,16 +8,19 @@ docs/product/prd.md section 9), and the failure mode. Default suite uses determi
 
 ## packages/cleanverse
 
-| #    | Test                                                                              | AC   | Fail-closed behavior              |
-| ---- | --------------------------------------------------------------------------------- | ---- | --------------------------------- |
-| CV-1 | AES known vector: `{ data }` matches expected Base64 for a fixed plaintext/key/IV | —    | —                                 |
-| CV-2 | Request headers: `api-id` present, `X-Request-ID` fresh UUID per call             | —    | —                                 |
-| CV-3 | Timeout / network error → typed failure, no partial result                        | 8    | treated as CLEANVERSE_UNAVAILABLE |
-| CV-4 | Malformed response (bad JSON, missing fields) → typed failure                     | 8    | MALFORMED_RESPONSE                |
-| CV-5 | HTTP 200 with `code != 0000` (business failure) → typed failure                   | 8    | propagate business code           |
-| CV-6 | verify_apass `data.code` = 1, 2, 3 → blocked; = 4 → allowed                       | 4, 5 | code != 4 blocks                  |
-| CV-7 | validator/verify `valid: true` vs `false` vs error/paused (12027)                 | 4, 5 | false/12027 blocks                |
-| CV-8 | download_travel_rule returns tokenized URL → redacted reference only              | 7    | never log URL                     |
+| #     | Test                                                                              | AC   | Fail-closed behavior              |
+| ----- | --------------------------------------------------------------------------------- | ---- | --------------------------------- |
+| CV-1  | AES known vector: `{ data }` matches expected Base64 for a fixed plaintext/key/IV | —    | —                                 |
+| CV-2  | Request headers: `api-id` present, `X-Request-ID` fresh UUID per call             | —    | —                                 |
+| CV-3  | Timeout / network error → typed failure, no partial result                        | 8    | treated as CLEANVERSE_UNAVAILABLE |
+| CV-4  | Malformed response (bad JSON, missing fields) → typed failure                     | 8    | MALFORMED_RESPONSE                |
+| CV-5  | HTTP 200 with `code != 0000` (business failure) → typed failure                   | 8    | propagate business code           |
+| CV-6  | verify_apass `data.code` = 1, 2, 3 → blocked; = 4 → allowed                       | 4, 5 | code != 4 blocks                  |
+| CV-7  | validator/verify `valid: true` vs `false` vs error/paused (12027)                 | 4, 5 | false/12027 blocks                |
+| CV-8  | download_travel_rule returns tokenized URL → redacted reference only              | 7    | never log URL                     |
+| CV-9  | Provisioning reads: is_register/rules/is_paused plain JSON; grant encrypted       | —    | schema mismatch fails closed      |
+| CV-10 | query_deposit_atoken_list parses the supported-CVA list                           | 2    | missing list → not provisioned    |
+| CV-11 | Smoke report: reachability, CVA presence, participant codes, pool state           | 1, 8 | unreachable ⇒ exit non-zero       |
 
 ## packages/domain
 
@@ -51,16 +54,20 @@ docs/product/prd.md section 9), and the failure mode. Default suite uses determi
 
 ## apps/api
 
-| #     | Test                                                                          | AC   | Failure mode        |
-| ----- | ----------------------------------------------------------------------------- | ---- | ------------------- |
-| API-1 | Request schema validation (malformed body → 400/typed error)                  | 8    | —                   |
-| API-2 | Redaction: no API key, ciphertext, PII, or downloadUrl in logs/response       | 8    | —                   |
-| API-3 | Authorization: operator without permission cannot release                     | 8    | —                   |
-| API-4 | Release with Cleanverse mocks: all checks pass → success path                 | 3    | —                   |
-| API-5 | No release on partial failure (one check fails → blocked attempt, no tx)      | 4, 5 | blocked + audit     |
-| API-6 | Audit records: traceId, request IDs, decision, reason, token, amount, tx hash | 7    | —                   |
-| API-7 | Audit export includes successful + blocked attempts + evidence refs           | 7    | —                   |
-| API-8 | Fresh checks enforced before any value-moving action                          | 4    | EVIDENCE_STALE etc. |
+| #      | Test                                                                            | AC   | Failure mode        |
+| ------ | ------------------------------------------------------------------------------- | ---- | ------------------- |
+| API-1  | Request schema validation (malformed body → 400/typed error)                    | 8    | —                   |
+| API-2  | Redaction: no API key, ciphertext, PII, or downloadUrl in logs/response         | 8    | —                   |
+| API-3  | Authorization: operator without permission cannot release                       | 8    | —                   |
+| API-4  | Release with Cleanverse mocks: all checks pass → success path                   | 3    | —                   |
+| API-5  | No release on partial failure (one check fails → blocked attempt, no tx)        | 4, 5 | blocked + audit     |
+| API-6  | Audit records: traceId, request IDs, decision, reason, token, amount, tx hash   | 7    | —                   |
+| API-7  | Audit export includes successful + blocked attempts + evidence refs             | 7    | —                   |
+| API-8  | Fresh checks enforced before any value-moving action                            | 4    | EVIDENCE_STALE etc. |
+| API-9  | Provisioning owner signature: EIP-191 over lowercase chain+address; recovers    | —    | malformed key fails |
+| API-10 | Confirmation gate: mutation without `--confirm` throws ConfirmationRequired     | 1    | refused             |
+| API-11 | generate_apass override flow (1000 → retry with `override: true`)               | 2    | —                   |
+| API-12 | Freeze/unfreeze via update_status with blacklistReason; verify pool diagnostics | 4, 5 | —                   |
 
 ## End-to-end (local, mocked)
 

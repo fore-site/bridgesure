@@ -23,6 +23,9 @@ export default tseslint.config(
             'apps/*/vitest*.ts',
             'packages/*/vitest*.ts',
           ],
+          // The default cap (10) is exceeded by the test/vitest files;
+          // provisioning scripts now belong to the api package project.
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
         },
         tsconfigRootDir: import.meta.dirname,
       },

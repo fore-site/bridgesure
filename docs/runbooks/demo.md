@@ -19,36 +19,75 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 
-### Before the Demo
+The live sequence is driven by opt-in provisioning commands (`pnpm provision`, `pnpm
+deploy:escrow`). Every mutation prints its plan — chain, target, operation, and expected
+effect — and refuses to run without `--confirm`. All commands require
+`BRIDGESURE_CLEANVERSE_MODE=live` and the Phase 5 wallet keys in `.env`:
 
-1. Copy .env.example to an ignored .env and fill API credentials, RPC URL, and deployment signer
-   configuration. Never commit the file. Set `BRIDGESURE_CLEANVERSE_MODE=live`.
-2. Verify the validator address has bytecode and expected read methods on Monad.
-3. Query supported Monad A-Tokens. If none is suitable, obtain confirmation before issuing a
-   dedicated demo CVA with /atoken/launch.
-4. Verify importer and exporter A-Pass records with /query_apass.
-5. Deploy escrow with CVA, validator, admin, and authorization signer.
-6. Register escrow with /validator/register, configure RuleV2, and test CVA vault registration.
+- `BRIDGESURE_DEPLOYER_PRIVATE_KEY` — admin/deployer wallet (deploys, holds, submits releases).
+- `BRIDGESURE_IMPORTER_PRIVATE_KEY` — funds the escrow on-chain.
+- `BRIDGESURE_VALIDATOR_OWNER_PRIVATE_KEY` — signs the EIP-191 owner proofs for pool
+  registration and role grants.
+
+### Pre-flight (read-only)
+
+1. `pnpm cleanverse:smoke` — sandbox reachability, supported A-Token list, both participants'
+   A-Pass state (record, verify code, status), and pool registration. Nothing mutates.
+2. Re-verify the validator address on Monad Testnet and confirm the `.env` values match
+   `.env.example`.
+
+### Deploy and pool registration
+
+3. `pnpm deploy:escrow --confirm` — builds the contracts and deploys `BridgeSureEscrow` with
+   the configured CVA, validator, parties, admin, release signer, trade ID, and milestone
+   amounts. Writes the deployed address to `BRIDGESURE_ESCROW_ADDRESS` in `.env`.
+4. If Cleanverse does not pre-grant REGISTER_ROLE:
+   `pnpm provision:grant --address <escrow> --confirm`.
+5. `pnpm provision:register-pool --confirm` — registers the escrow as a compliance pool with
+   the EIP-191 owner signature and the compat-form rule (empty fields = unrestricted). Writes
+   `BRIDGESURE_VALIDATOR_POOL_ADDRESS` (the pool equals the escrow).
+6. `pnpm provision:verify-pool` — read-only confirmation: registered / paused / rules, plus
+   both participants' A-Pass verify codes.
+
+### A-Pass records (demo participants)
+
+7. `pnpm provision:apass --party importer --confirm` and
+   `pnpm provision:apass --party exporter --confirm` — create/override the demo records with
+   synthetic identity fixtures (a `1000` override response is retried automatically).
+
+### Fund and release milestone one
+
+8. `pnpm provision:fund-escrow --confirm` — importer approves and funds the escrow; prints
+   importer and escrow balances before and after.
+9. Mirror the funding in the API (live mode): `POST /trades/:id/fund-intent` (the console Fund
+   button), then release milestone one. Save the response payload and submit it on-chain:
+   `pnpm provision:submit-release --payload release-m1.json --confirm` — the contract re-runs
+   the CVI checks before moving value. Record the tx hash for the Travel Rule export.
+
+### Freeze and blocked milestone two
+
+10. `pnpm provision:freeze-exporter --confirm` — freezes the exporter's A-Pass
+    (`/update_status` status "2").
+11. Attempt milestone two (console/API): it fails closed with `APASS_NOT_VALID` and no
+    transaction is submitted — verify the escrow and exporter balances did not move.
+12. `pnpm provision:unfreeze-exporter --confirm` reactivates the credential if the demo is
+    re-run.
+
+### Evidence export
+
+13. Use `/query_txs` for the release transaction and `/download_travel_rule` with the release
+    tx hash; store only a redacted reference to the time-limited URL.
 
 ## Live Mutation Gate
 
-Before token issuance, A-Pass status changes, validator writes, role grants, faucet requests,
-funding, freeze/invalidation, or transfers, display the exact chain, target address, operation,
-amount, and expected effect and obtain explicit confirmation.
-
-## Demo Sequence
-
-1. Open the single trade in DRAFT.
-2. Fund with the configured CVA from the importer. Confirm escrow balance and funding event.
-3. Submit milestone-one evidence. Run fresh A-Pass and validator checks. Release the first amount.
-   Show authorization digest, transaction hash, and updated balances.
-4. Freeze or invalidate the exporter using a dedicated sandbox mutation.
-5. Submit milestone-two evidence. Repeat checks. Show the blocked reason and prove escrow and
-   exporter balances did not change.
-6. Export the audit timeline, transaction records, and Travel Rule evidence reference.
+Every provisioning script prints its plan — exact chain, target address, operation, amount,
+and expected effect — and requires `--confirm` before executing (see
+`apps/api/src/provisioning.ts` and `apps/api/scripts/`). Read-only commands (`cleanverse:smoke`,
+`provision:verify-pool`) run without confirmation.
 
 ## Recovery
 
-If a submission times out, query the chain and Cleanverse transaction status before retrying. If
-compliance is negative, do not retry with the same authorization. If a report URL is returned,
-store only a redacted reference and provide it through a controlled response path.
+If a submission times out, query the chain and Cleanverse transaction status before retrying; a
+consumed authorization nonce is never reused. If compliance is negative, do not retry with the
+same authorization. If a report URL is returned, store only a redacted reference and provide it
+through a controlled response path.

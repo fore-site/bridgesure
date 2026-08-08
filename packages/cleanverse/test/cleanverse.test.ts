@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createCipheriv } from 'node:crypto';
 import { decryptEnvelope, encryptBody } from '../src/crypto.js';
 import { redact } from '../src/redact.js';
+import { runSmoke } from '../src/smoke.js';
 import { BusinessError, CleanverseClient, TransportError } from '../src/transport.js';
 import { MockCleanverseClient } from '../src/mocks/index.js';
 
@@ -171,6 +172,90 @@ describe('transport', () => {
     expect(typeof data).toBe('string');
     expect(String(data)).not.toContain('"status"');
   });
+
+  it('reads validator pool registration status over plain JSON', async () => {
+    const seen: { url: string; init: RequestInit }[] = [];
+    const fetchImpl = (url: string, init: RequestInit) => {
+      seen.push({ url, init });
+      return jsonResponse({
+        code: '0000',
+        data: { chain: 'monad', contract_address: address, registered: true },
+      });
+    };
+    const result = await client(fetchImpl).validatorIsRegister({
+      chain: 'monad',
+      contract_address: address,
+    });
+    expect(result.registered).toBe(true);
+    expect(seen[0]!.url).toContain('/validator/is_register');
+    expect(seen[0]!.init.body).toBe(JSON.stringify({ chain: 'monad', contract_address: address }));
+  });
+
+  it('reads pool rules and pause state', async () => {
+    const fetchImpl = (url: string) => {
+      if (url.includes('/validator/rules')) {
+        return jsonResponse({
+          code: '0000',
+          data: { chain: 'monad', contract_address: address, rules: [{ min_tier: 3 }] },
+        });
+      }
+      return jsonResponse({
+        code: '0000',
+        data: { chain: 'monad', contract_address: address, paused: false },
+      });
+    };
+    const c = client(fetchImpl);
+    const rules = await c.validatorRules({ chain: 'monad', contract_address: address });
+    expect(rules.rules).toHaveLength(1);
+    const paused = await c.validatorIsPaused({ chain: 'monad', contract_address: address });
+    expect(paused.paused).toBe(false);
+  });
+
+  it('encrypts bodies for /validator/grant', async () => {
+    const seen: { init: RequestInit }[] = [];
+    const fetchImpl = (url: string, init: RequestInit) => {
+      seen.push({ init });
+      return jsonResponse({ code: '0000', data: { chain: 'monad', address, tx_hash: '0xgrant' } });
+    };
+    const result = await client(fetchImpl).validatorGrant({
+      chain: 'monad',
+      address,
+      owner_signature: '0xdeadbeef',
+    });
+    expect(result.tx_hash).toBe('0xgrant');
+    const raw: unknown = JSON.parse(String(seen[0]!.init.body));
+    if (typeof raw !== 'object' || raw === null || !('data' in raw)) {
+      throw new Error('malformed encrypted body');
+    }
+    expect(typeof raw.data).toBe('string');
+    expect(String(raw.data)).not.toContain('owner_signature');
+  });
+
+  it('discovers the supported CVA list', async () => {
+    const fetchImpl = () =>
+      jsonResponse({
+        code: '0000',
+        data: {
+          chain: 'monad',
+          tokens: [
+            {
+              origin_token: { address, name: 'USDC', symbol: 'usdc', decimals: 6 },
+              atoken: { address, name: 'aUSDC', symbol: 'ausdc', decimals: 6 },
+              accesscore_address: address,
+              apass_address: address,
+            },
+          ],
+        },
+      });
+    const result = await client(fetchImpl).queryDepositAtokenList({ chain: 'monad' });
+    expect(result.tokens[0]?.atoken.symbol).toBe('ausdc');
+  });
+
+  it('treats a null token list as empty (sandbox symbol-filter drift)', async () => {
+    const fetchImpl = () => jsonResponse({ code: '0000', data: { chain: 'monad', tokens: null } });
+    const result = await client(fetchImpl).queryDepositAtokenList({ chain: 'monad' });
+    expect(result.tokens).toEqual([]);
+  });
 });
 
 /** Verification codes 1-4 and validator true/false/error via the mock client. */
@@ -225,5 +310,62 @@ describe('mocks', () => {
     await expect(
       client.verifyApass({ chain: 'monad', atoken: address, address }),
     ).resolves.toMatchObject({ code: 4 });
+  });
+
+  it('covers provisioning reads and the register-role grant', async () => {
+    const client = new MockCleanverseClient();
+    await expect(
+      client.validatorIsRegister({ chain: 'monad', contract_address: address }),
+    ).resolves.toMatchObject({ registered: true });
+    await expect(
+      client.validatorRules({ chain: 'monad', contract_address: address }),
+    ).resolves.toMatchObject({ rules: [] });
+    await expect(
+      client.validatorIsPaused({ chain: 'monad', contract_address: address }),
+    ).resolves.toMatchObject({ paused: false });
+    await expect(client.queryDepositAtokenList({ chain: 'monad' })).resolves.toMatchObject({
+      tokens: [expect.objectContaining({ atoken: expect.objectContaining({ symbol: 'ausdc' }) })],
+    });
+    await expect(
+      client.validatorGrant({ chain: 'monad', address, owner_signature: '0x01' }),
+    ).resolves.toMatchObject({ tx_hash: '0xmock-grant-tx' });
+  });
+});
+
+/** Smoke report: deterministic against mocks; fails closed when unreachable. */
+describe('smoke', () => {
+  const address = '0x0000000000000000000000000000000000000005';
+  const opts = {
+    chain: 'monad' as const,
+    atoken: address,
+    importer: address,
+    exporter: address,
+    pool: address,
+  };
+
+  it('reports sandbox health from deterministic mocks', async () => {
+    const client = new MockCleanverseClient();
+    client.setApass(opts.importer, 4);
+    client.setApass(opts.exporter, 4);
+    const report = await runSmoke(client, opts);
+    expect(report.ok).toBe(true);
+    expect(report.baseReachable).toBe(true);
+    // The mock token list uses a different address than the configured CVA.
+    expect(report.atoken.configuredFound).toBe(false);
+    expect(report.atoken.supportedCount).toBe(1);
+    expect(report.importer).toMatchObject({ code: 4, apassAvailable: true });
+    expect(report.exporter).toMatchObject({ code: 4 });
+    expect(report.pool).toMatchObject({ registered: true, paused: false, ruleCount: 0 });
+  });
+
+  it('fails closed when the sandbox is unreachable', async () => {
+    const client = new MockCleanverseClient();
+    client.failNext('/query_deposit_atoken_list', 'network');
+    const report = await runSmoke(client, opts);
+    expect(report.ok).toBe(false);
+    expect(report.baseReachable).toBe(false);
+    expect(report.atoken.supportedCount).toBe(0);
+    // The token-list failure does not prevent the diagnostic reads from running.
+    expect(report.pool.registered).toBe(true);
   });
 });
