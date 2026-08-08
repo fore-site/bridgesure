@@ -26,7 +26,7 @@ const SECRET_KEYS = new Set([
 
 const URL_PATTERN = /https?:\/\/[^\s"']+/g;
 
-/** Narrow a value to a plain record (AGENTS.md: prefer type guards over casts). */
+/** Narrow a value to a plain record (repository convention: prefer type guards over casts). */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

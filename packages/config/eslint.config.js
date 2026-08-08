@@ -4,7 +4,7 @@ import globals from 'globals';
 
 /**
  * Shared ESLint flat config for BridgeSure TypeScript packages.
- * Enforces the AGENTS.md coding rules: no `any`, no non-null assertions,
+ * Enforces the repository coding rules: no `any`, no non-null assertions,
  * no default exports, no unchecked casts, typed error handling.
  *
  * Consumers extend this and set `languageOptions.parserOptions.project`
@@ -37,24 +37,24 @@ export default tseslint.config(
       },
     },
     rules: {
-      // AGENTS.md: avoid `any`, non-null assertions, default exports, unchecked casts.
+      // Repository convention: avoid `any`, non-null assertions, default exports, unchecked casts.
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       'no-restricted-syntax': [
         'error',
         {
           selector: 'ExportDefaultDeclaration',
-          message: 'Default exports are disallowed; use named exports (AGENTS.md).',
+          message: 'Default exports are disallowed; use named exports (repository convention).',
         },
         {
           selector: 'TSAsExpression[typeAnnotation.typeName.name!="const"]',
           message:
-            'Avoid `as` type casts; validate external data with schemas and narrow with type guards (AGENTS.md).',
+            'Avoid `as` type casts; validate external data with schemas and narrow with type guards (repository convention).',
         },
       ],
       // `_`-prefixed parameters are intentionally unused (e.g. mock request shapes).
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      // AGENTS.md: model expected failures with typed results/errors; no thrown strings,
+      // Repository convention: model expected failures with typed results/errors; no thrown strings,
       // no silently swallowed errors.
       '@typescript-eslint/only-throw-error': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
