@@ -30,3 +30,6 @@ media_kit/.playwright-mcp/
 .playwright-mcp/
 media_kit/
 .DS_Store
+media_kit/
+node_modules/
+
