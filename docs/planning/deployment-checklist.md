@@ -1,13 +1,13 @@
-# BridgeSure Deployment and Mutation Checklist (Phase 5)
+# BridgeSure Deployment and Mutation Checklist
 
-Status: ready. Date: 2026-08-06 (Phase 3).
+Status: ready. Date: 2026-08-06.
 
-Ordered live-mutation checklist for the Phase 5 build/demo day (Aug 8). Every write is
+Ordered live-mutation checklist for testnet provisioning. Every write is
 opt-in: display the exact chain, target address, operation, amount, and expected effect and
 obtain explicit confirmation before executing (see docs/engineering/architecture.md section 10
 and docs/runbooks/demo.md). Read-only checks run by default.
 
-## Environment facts (Phase 2 confirmed)
+## Environment facts (confirmed)
 
 - Chain: Monad Testnet, chain ID 10143, RPC https://testnet-rpc.monad.xyz.
 - Validator: `0xaC7e5179C2C7f03f209136886c172eb34F161792` (EIP-1967 proxy; CVI surface verified;
@@ -45,7 +45,7 @@ and docs/runbooks/demo.md). Read-only checks run by default.
       admin, release-signer address, trade ID, milestone amounts, expiry/hold settings.
 - [ ] Record the deployed escrow address; set `BRIDGESURE_ESCROW_ADDRESS` locally (never commit
       a real value if it is a secret — addresses are public, so documenting the deployed address
-      is expected for the judge runbook).
+      is expected for the demo runbook).
 
 ### Validator pool registration and rules (writes)
 
@@ -89,10 +89,10 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 ### Demo close-out
 
 - [ ] Run `pnpm check` (root) and `forge fmt --check`, `forge build`, `forge test` (contracts/).
-- [ ] Finish README, configuration guide, deployment addresses, screenshots, and judge runbook.
+- [ ] Finish README, configuration guide, deployment addresses, screenshots, and demo runbook.
 - [ ] Update `.env.example` if any configuration contract changed.
 
-## Commit expectations (Phase 5)
+## Commit expectations
 
 - feat(api): complete trade and audit endpoints
 - feat(web): build BridgeSure compliance console

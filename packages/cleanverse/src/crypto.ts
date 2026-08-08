@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 /**
  * Encrypt a JSON-serializable payload for Cleanverse.
  *
- * Per docs/reference/hackathon/hackathon_docs.txt and docs/planning/endpoint-inventory.md:
+ * Per the Cleanverse v5.6 API reference and docs/planning/endpoint-inventory.md:
  * key = Base64-decode(api-key), AES/CBC/PKCS5Padding, 16-byte zero IV, UTF-8 JSON,
  * body = { data: Base64(ciphertext) }.
  */

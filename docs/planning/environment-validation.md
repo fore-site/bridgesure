@@ -1,4 +1,4 @@
-# BridgeSure Phase 2 Environment Validation Report
+# BridgeSure Environment Validation Report
 
 Status: complete (read-only). Date: 2026-08-05.
 
@@ -18,7 +18,7 @@ issuance, or participant-status mutations were performed during this phase.
 Action items:
 
 - Pin Node via `.nvmrc` and `engines`, and pin pnpm via `packageManager` when the workspace
-  is scaffolded in Phase 4.
+  is scaffolded.
 - Confirm `~/.foundry/bin` is on PATH for new shells (already appended to `.bashrc`).
 
 ## 2. Confirmed Monad Network Configuration
@@ -35,7 +35,7 @@ Read-only JSON-RPC checks on 2026-08-05:
 | Testnet gas price    | `0x17bfac7c00` (~102 gwei)                           | `eth_gasPrice`                                         |
 
 Decision: target `BRIDGESURE_CHAIN=monad` resolves to **Monad Testnet, chain ID 10143**,
-matching the deployed validator and the hackathon scope ("deploy the demo on Monad testnet").
+matching the deployed validator and the demo scope ("deploy on Monad testnet").
 
 ## 3. Validator Read-Check (`0xaC7e5179C2C7f03f209136886c172eb34F161792`)
 
@@ -62,7 +62,7 @@ from registrar/contract, `isRegistered`, `getRulesV2`, and `complianceVerify`.
 Open question carried forward: the deployment path for `registerV2`/`registerApass`
 (REGISTER_ROLE). The v5.6 API docs describe `/validator/apply`, `/validator/grant`, and
 `/validator/register`; the exact authorized mutation and whom Cleanverse grants the role to
-must be confirmed before Phase 5 provisioning. The `registerApass` CVA-vault requirement
+must be confirmed before provisioning. The `registerApass` CVA-vault requirement
 (D-009) remains unverified by design — it requires an escrow address that does not exist yet.
 
 ## 4. Cleanverse Connectivity
@@ -98,7 +98,7 @@ separate policy contract, not an ERC20 view on the token itself.
 
 Implication for D-008: **no new CVA issuance is required.** The existing Monad `aUSDC`
 A-Token is the configured escrow asset. A-Pass balance of 0 means funding must come from
-the faucet or a transfer once provisioning is approved in Phase 5.
+the faucet or a transfer once provisioning is approved.
 
 ### A-Pass State (`POST /query_apass`, chain=monad)
 
@@ -109,17 +109,15 @@ the faucet or a transfer once provisioning is approved in Phase 5.
 
 Neither participant has an A-Pass record on Monad yet. `verify_apass` will therefore
 return a negative result until A-Pass records are generated (a sandbox write that requires
-explicit confirmation, planned for Phase 5). The API returns a clean, typed failure
+explicit confirmation). The API returns a clean, typed failure
 (`code=0002`, machine message prefix `CN_001`), which matches the fail-closed design:
 absence of a record must surface as a blocked decision, not a success.
 
-## 6. Starter Kit Inspection
+## 6. Reference Materials
 
-No starter kit exists in the repository or the reference documentation. The hackathon
-details reference a GitHub starter kit and sample contracts delivered separately (email).
-It was not available in the working copy, so nothing was imported. It should be requested
-from Cleanverse if it is needed before the build window; otherwise the design documents are
-sufficient to scaffold from scratch in Phase 4.
+Cleanverse reference material (the API v5.6 documentation and the integration guides) is
+maintained locally and is not redistributed. The design documents in this repository are
+sufficient to scaffold the implementation from scratch.
 
 ## 7. Local Environment Files
 
@@ -133,19 +131,19 @@ sufficient to scaffold from scratch in Phase 4.
 
 ## 8. Updated Open Questions and Risk Register
 
-| Item                                     | Status        | Notes                                                                                  |
-| ---------------------------------------- | ------------- | -------------------------------------------------------------------------------------- |
-| Monad network + chain ID                 | RESOLVED      | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                             |
-| Validator address + network              | RESOLVED      | Testnet-only deployment; implementation confirmed CVI interface                        |
-| Cleanverse credentials                   | RESOLVED      | live, read-only calls succeeded 2026-08-05                                             |
-| Supported Monad CVA address              | RESOLVED      | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)       |
-| Participant A-Pass records               | PENDING WRITE | neither importer nor exporter has an A-Pass on Monad; generation is a Phase 5 mutation |
-| Escrow registration path (REGISTER_ROLE) | PENDING       | `/validator/apply` vs grant/register flow to confirm with Cleanverse                   |
-| `registerApass` CVA-vault requirement    | PENDING       | needs deployed escrow; test in Phase 5 (D-009)                                         |
-| Starter kit                              | NOT AVAILABLE | delivered separately by email if still wanted                                          |
-| Funding source for demo                  | PENDING       | importer aUSDC balance is 0; faucet or transfer required in Phase 5                    |
+| Item                                     | Status        | Notes                                                                               |
+| ---------------------------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| Monad network + chain ID                 | RESOLVED      | Testnet 10143, RPC `testnet-rpc.monad.xyz`                                          |
+| Validator address + network              | RESOLVED      | Testnet-only deployment; implementation confirmed CVI interface                     |
+| Cleanverse credentials                   | RESOLVED      | live, read-only calls succeeded 2026-08-05                                          |
+| Supported Monad CVA address              | RESOLVED      | `aUSDC` `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`; no issuance needed (D-008)    |
+| Participant A-Pass records               | PENDING WRITE | neither importer nor exporter has an A-Pass on Monad; generation is a sandbox write |
+| Escrow registration path (REGISTER_ROLE) | PENDING       | `/validator/apply` vs grant/register flow to confirm with Cleanverse                |
+| `registerApass` CVA-vault requirement    | PENDING       | needs deployed escrow; test during provisioning (D-009)                             |
+| Cleanverse reference material            | LOCAL ONLY    | not redistributed; design docs are sufficient to scaffold                           |
+| Funding source for demo                  | PENDING       | importer aUSDC balance is 0; faucet or transfer required during provisioning        |
 
-## 9. Phase 2 Exit Criteria
+## 9. Exit Criteria
 
 - Implementation can begin without avoidable environment discovery: met. Toolchain,
   network, and validator behavior are confirmed.

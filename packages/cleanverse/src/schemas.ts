@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Runtime schemas for the Cleanverse API v5.6 boundary.
- * Authoritative field shapes: docs/reference/hackathon/hackathon_docs.txt and
+ * Authoritative field shapes: Cleanverse v5.6 API reference and
  * docs/planning/endpoint-inventory.md. Every `data` payload must pass these
  * schemas before use; unknown fields, missing codes, or non-0000 envelopes
  * fail closed.
@@ -168,7 +168,7 @@ export const travelRuleDataSchema = z.object({
 export type TravelRuleData = z.infer<typeof travelRuleDataSchema>;
 
 // ---------------------------------------------------------------------------
-// Provisioning endpoints (Phase 5 writes; schemas kept for the typed client)
+// Provisioning endpoints (sandbox writes; schemas kept for the typed client)
 // ---------------------------------------------------------------------------
 
 export const updateStatusRequestSchema = z.object({

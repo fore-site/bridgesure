@@ -1,9 +1,9 @@
 # BridgeSureEscrow Contract Specification
 
-Status: ready. Date: 2026-08-06 (Phase 3).
+Status: ready. Date: 2026-08-06.
 
 Defines the ABI-level contract surface, events, custom errors, and the concrete EIP-712
-authorization encoding that Phase 4 must implement. This is the authoritative contract reference;
+authorization encoding that the implementation must follow. This is the authoritative contract reference;
 docs/engineering/technical-design.md section 7-8 provides the rationale.
 
 ## 1. Interfaces
@@ -27,7 +27,7 @@ interface IATokenPolicy {
 ```
 
 The validator address is stored immutably. The escrow is registered as its own validator pool
-(Phase 5) and calls `complianceVerify(address(this), participant)` inside value-moving logic.
+at provisioning time and calls `complianceVerify(address(this), participant)` inside value-moving logic.
 
 ## 2. Constructor
 
@@ -241,7 +241,7 @@ Every error is revertible and carries no sensitive data.
 
 Added only if the deployed validator expects the registered pool to invoke
 `setRuleV2FromContract` / `addRuleV2FromContract` (owner- or narrow-compliance-admin guarded). The
-Phase 5 `validator/register` path already sets the initial rule via the API, so these wrappers are
+`validator/register` path already sets the initial rule via the API, so these wrappers are
 expected to be unnecessary for the MVP.
 
 ## 9. Implementation notes

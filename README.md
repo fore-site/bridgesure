@@ -10,11 +10,10 @@ funds stay put.
 
 Start with the [documentation index](docs/README.md).
 
-Current phase: Phase 4 implementation complete (2026-08-08). All non-live checks pass
-(`pnpm check`, contract tests) and the mocked demo flow is green: fund, release milestone
-one, block milestone two after participant invalidation (balances unchanged), and export
-the audit. Phase 5 live provisioning on Monad Testnet remains (see the
-[deployment checklist](docs/planning/deployment-checklist.md)).
+Status: MVP implemented (2026-08-08). All non-live checks pass (`pnpm check`, contract
+tests) and the mocked demo flow is green: fund, release milestone one, block milestone two
+after participant invalidation (balances unchanged), and export the audit. Live testnet
+provisioning remains (see the [deployment checklist](docs/planning/deployment-checklist.md)).
 
 ## Repository Layout
 

@@ -1,13 +1,13 @@
-# BridgeSure Implementation Checklist (Phase 4)
+# BridgeSure Implementation Checklist
 
-Status: Phase 4 complete (2026-08-08). All sections 1-7 verified: `pnpm check` and the
+Status: complete (2026-08-08). All sections 1-7 verified: `pnpm check` and the
 contract checks pass; the mocked local E2E (fund, release milestone one, blocked milestone
-two, audit export) is green. Live provisioning remains Phase 5.
+two, audit export) is green. Live provisioning remains open.
 
-Ordered task list for the Phase 4 build day (Aug 7). Tasks are sequenced so that each commit
-lands on a compiling, testable state. Dependencies are listed per task; nothing below requires a
-decision that Phase 3 left open — the only runtime unknowns (pool registration path, registerApass
-eligibility, funding source) are Phase 5 confirmation steps, not code blockers.
+Ordered implementation task list. Tasks are sequenced so that each commit
+lands on a compiling, testable state. Dependencies are listed per task; the only runtime
+unknowns (pool registration path, registerApass eligibility, funding source) are confirmation
+steps at provisioning time, not code blockers.
 
 Expected commit sequence is preserved:
 
@@ -20,10 +20,10 @@ Expected commit sequence is preserved:
 
 ## 0. Preconditions (no code)
 
-- [ ] Toolchain confirmed: Node 24, pnpm 11.20, Foundry 1.7.1 (Phase 2 report).
+- [ ] Toolchain confirmed: Node 24, pnpm 11.20, Foundry 1.7.1 (environment validation report).
 - [ ] `.env.example` carries chain ID 10143, RPC, and confirmed addresses (importer, exporter,
       admin, aUSDC, origin USDC, validator). Local `.env` copies them plus credentials.
-- [ ] All Phase 3 planning docs committed and referenced by docs/README.md.
+- [ ] All planning docs committed and referenced by docs/README.md.
 
 ## 1. Scaffold workspace and Foundry project
 
@@ -136,24 +136,24 @@ Dependencies: cleanverse + domain (inward dependency rule).
 - [ ] Verify: `pnpm --filter @bridgesure/api test` — schema validation, redaction, authorization,
       Cleanverse mocks, audit records, no release on partial failure.
 
-## 7. Phase 4 close-out
+## 7. Close-out
 
 - [ ] Local end-to-end (mocked): one happy milestone, one fail-closed milestone, unchanged
       balances, audit export — per docs/planning/test-matrix.md E2E row.
 - [ ] `pnpm check` from root: format:check + lint + typecheck + all non-live tests.
 - [ ] `forge fmt --check`, `forge build`, `forge test` from contracts/.
-- [ ] Update docs/README.md and the Phase 4 close-out status.
+- [ ] Update docs/README.md and the close-out status.
 - [ ] Commit 7 (if not folded into prior commits): fix: address full-suite findings.
 
 ## Definition of Done (maps to PRD acceptance criteria)
 
 | #   | Criterion                                             | Where proven                      |
 | --- | ----------------------------------------------------- | --------------------------------- |
-| 1   | Judge can run documented local demo with mocks        | test:e2e + demo runbook           |
+| 1   | The documented local demo runs with mocks             | test:e2e + demo runbook           |
 | 2   | Compliant importer can fund the configured CVA escrow | contract fund test + domain       |
 | 3   | Milestone one releases exactly once, balances correct | contract success test + E2E       |
 | 4   | Exporter invalidation blocks milestone two            | contract blocked test + E2E       |
 | 5   | Blocked attempt leaves balances unchanged             | contract + E2E balance assertions |
 | 6   | Replay/expired/wrong-trade/token/chain/party fails    | contract + domain tests           |
 | 7   | Audit export has success + blocked + evidence refs    | api test + E2E export             |
-| 8   | pnpm check and contract checks pass                   | Phase 4 close-out                 |
+| 8   | pnpm check and contract checks pass                   | close-out                         |

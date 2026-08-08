@@ -1,6 +1,6 @@
 # BridgeSure Test Matrix (mapped to acceptance criteria)
 
-Status: ready. Date: 2026-08-06 (Phase 3).
+Status: ready. Date: 2026-08-06.
 
 Each row names the test, the layer, the acceptance criterion it proves (PRD
 docs/product/prd.md section 9), and the failure mode. Default suite uses deterministic mocks
@@ -71,7 +71,7 @@ docs/product/prd.md section 9), and the failure mode. Default suite uses determi
 | E2E-3 | Audit export                                       | 7       | contains both attempts, reason codes, evidence refs    |
 | E2E-4 | Replay/expired/wrong-trade authorization           | 6       | fail-closed                                            |
 
-## Full-suite gate (Phase 4/5 close-out)
+## Full-suite gate
 
 - `pnpm check` from root: format:check + lint + typecheck + all non-live tests.
 - `forge fmt --check`, `forge build`, `forge test` from `contracts/`.

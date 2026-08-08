@@ -22,7 +22,7 @@ funds stay put, with an on-chain reason code.
 
 ### Why this wins where "compliant custody" does not
 
-Most proposals on this board treat CVI as one-time gating ("verify once, then mint"). That is
+Most escrow and lending integrations treat CVI as one-time gating ("verify once, then mint"). That is
 exactly the failure mode regulators distrust: a credential can be valid at onboarding and
 sanctioned thirty minutes later. BridgeSure makes the credential state _live_ by coupling three
 Cleanverse primitives into a single release invariant:
@@ -35,7 +35,7 @@ Cleanverse primitives into a single release invariant:
 
 Because these are wired into value-moving logic (not a UI flag), a revocation anywhere in the
 flow changes what the escrow will actually do next. That is the "compliance-continuous" claim,
-and it is the thing a judge demo can prove on screen.
+and it is the thing the demo proves on screen.
 
 ### Tangent vs. nearest neighbors
 
@@ -49,12 +49,12 @@ and it is the thing a judge demo can prove on screen.
 
 A compliant exporter and importer settle a trade. Milestone one releases cleanly. The exporter's
 credential is then frozen in the sandbox. Milestone two is attempted, **fails closed with a
-reason code, and the screen shows the escrow and exporter balances did not move.** The judge
+reason code, and the screen shows the escrow and exporter balances did not move.** The operator
 clicks export and sees both decisions, hashes, and evidence in one audit packet.
 
 ## 3. MVP Goal
 
-Demonstrate one judge-reproducible flow: fund one trade, release milestone one, invalidate a
+Demonstrate one reproducible flow: fund one trade, release milestone one, invalidate a
 participant, block milestone two without moving funds, and export transaction and Travel Rule
 evidence.
 
@@ -63,7 +63,7 @@ evidence.
 - Importer/buyer: funds the escrow and approves trade evidence.
 - Exporter/seller: receives milestone one and is invalidated before milestone two.
 - Admin/operator: deploys and configures contracts and operates the demo.
-- Compliance reviewer/judge: inspects decisions, reason codes, hashes, and export evidence.
+- Compliance reviewer: inspects decisions, reason codes, hashes, and export evidence.
 
 | Role     | Address                                    |
 | -------- | ------------------------------------------ |
@@ -133,7 +133,7 @@ Travel Rule report reference. It must not expose credentials, PII, ciphertext, o
 
 ## 9. Acceptance Criteria
 
-1. A judge can run the documented local demo with mocks.
+1. The documented local demo runs with mocks.
 2. A compliant importer can fund the configured CVA escrow.
 3. Milestone one releases exactly once and updates balances correctly.
 4. Exporter invalidation causes milestone two to fail closed.
@@ -144,7 +144,7 @@ Travel Rule report reference. It must not expose credentials, PII, ciphertext, o
 
 ## 10. Demo Narrative
 
-A judge-facing, ~3 minute flow that proves the "compliance-continuous" claim with one successful
+A ~3 minute walkthrough that proves the "compliance-continuous" claim with one successful
 release and one fail-closed release.
 
 1. **Open the trade.** The console shows one trade in DRAFT: importer and exporter wallets, the

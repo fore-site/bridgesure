@@ -18,8 +18,7 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/
 
-docs/reference/hackathon/
-docs/reference/cleanverse/
+docs/reference/
 docs/planning/five-day-plan.md
 
 .agents/

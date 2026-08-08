@@ -7,7 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @notice Cleanverse CVI compliance validator (single-contract pattern).
-///         Registered as the escrow's own pool in Phase 5; reverts
+///         Registered as the escrow's own pool; reverts
 ///         `PoolNotRegistered()` when the pool is not registered.
 interface IAPassComplianceValidator {
     function complianceVerify(address pool, address user) external view returns (bool);

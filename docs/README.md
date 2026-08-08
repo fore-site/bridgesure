@@ -7,33 +7,33 @@ Read these documents in order:
 3. [Technical design](engineering/technical-design.md) defines data, state, APIs, contract behavior, and tests.
 4. [Cleanverse integration](engineering/cleanverse-integration.md) maps the API and CCP guides to BridgeSure.
 5. [Security model](engineering/security-model.md) defines threats, controls, and release invariants.
-6. [Demo runbook](runbooks/demo.md) defines provisioning and the judge-facing sequence.
+6. [Demo runbook](runbooks/demo.md) defines provisioning and the demo sequence.
 7. [Decision log](engineering/decisions.md) records choices that implementation must preserve.
 
 Planning artifacts (phase-specific):
 
-- [Environment validation](planning/environment-validation.md) — Phase 2 read-only report.
-- [Implementation checklist](planning/implementation-checklist.md) — Phase 4 ordered tasks.
+- [Environment validation](planning/environment-validation.md) — read-only environment report.
+- [Implementation checklist](planning/implementation-checklist.md) — ordered implementation tasks.
 - [Endpoint inventory](planning/endpoint-inventory.md) — Cleanverse request/response schemas.
 - [Contract spec](planning/contract-spec.md) — BridgeSureEscrow ABI, events, errors, EIP-712.
 - [Test matrix](planning/test-matrix.md) — tests mapped to acceptance criteria.
-- [Deployment checklist](planning/deployment-checklist.md) — Phase 5 mutation sequence.
+- [Deployment checklist](planning/deployment-checklist.md) — live provisioning and mutation sequence.
 
 Source precedence:
 
-1. reference/hackathon/hackathon_docs.txt for Cleanverse API v5.6 fields and behavior.
+1. Cleanverse API v5.6 reference documentation for fields and behavior.
 2. CCP CVA/CVI PDFs for Solidity interfaces, RuleV2 semantics, and integration patterns.
 3. These design documents for BridgeSure-specific implementation decisions.
 
 Open implementation inputs:
 
 - deployed escrow address;
-- A-Pass records for both participants (generation is a Phase 5 sandbox write);
+- A-Pass records for both participants (generation is a sandbox write);
 - validator-pool registration path for the escrow (REGISTER_ROLE; /validator/apply vs
   grant/register flow) and the registerApass CVA-vault requirement;
 - funding source for the demo (importer aUSDC balance is currently 0).
 
-Resolved during Phase 2 (see [environment validation](planning/environment-validation.md)):
+Resolved (see [environment validation](planning/environment-validation.md)):
 
 - Monad Testnet, chain ID 10143, RPC https://testnet-rpc.monad.xyz;
 - validator 0xaC7e5179C2C7f03f209136886c172eb34F161792 is deployed only on Monad Testnet:

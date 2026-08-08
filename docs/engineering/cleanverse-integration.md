@@ -3,8 +3,7 @@
 ## Scope
 
 This record maps the Cleanverse API v5.6 documentation and the two CCP integration guides to
-the BridgeSure MVP. It does not replace endpoint schemas in
-`docs/reference/hackathon/hackathon_docs.txt`.
+the BridgeSure MVP. It does not replace the authoritative endpoint schemas.
 
 ## Selected Architecture
 
@@ -45,8 +44,8 @@ for protocols creating multiple pools. Single-contract registration minimizes ro
 deployment surface while retaining explicit on-chain compliance at the release boundary.
 
 The API registration signature is an EIP-191 owner signature over the lowercase chain slug
-concatenated with the lowercase escrow address, with no separator.
-`docs/reference/hackathon/hackathon_docs.txt` remains
+concatenated with the lowercase escrow address, with no separator. The Cleanverse v5.6 API
+reference remains
 authoritative for the encrypted `/validator/register` request and its initial compatibility-form
 rule.
 
@@ -89,7 +88,7 @@ CVA-vault registration.
 
 ## Sandbox Prerequisites
 
-Status after Phase 2 (see docs/planning/environment-validation.md): confirmed items are
+Status (see docs/planning/environment-validation.md): confirmed items are
 marked; remaining items are confirmed before any live mutation:
 
 - credential role: **confirmed Issue Member**;
@@ -97,7 +96,7 @@ marked; remaining items are confirmed before any live mutation:
 - exporter/seller: `0xaABb93dA3999765dD48a40d70054190AE3361506`;
 - deployment/admin: `0x13cd068321C624d63C4A1d0eA2eBd806c22B9FA7`;
 - usable Monad CVI records for the importer and exporter — **confirmed absent**; A-Pass
-  generation is a Phase 5 write mutation;
+  generation is a sandbox write;
 - issued and supported Monad CVA/A-Token address — **confirmed**: aUSDC
   `0xaC0893567D43C3E7e6e35a72803df05416C1f20D` (origin USDC
   `0x534b2f3A21130d7a60830c2Df862319e593943A3`), the only supported pair on Monad;
@@ -127,9 +126,9 @@ mutation.
 
 ## Documentation Precedence
 
-Use `docs/reference/hackathon/hackathon_docs.txt` for API paths, encryption, request fields,
+Use the Cleanverse v5.6 API reference for API paths, encryption, request fields,
 response fields, and current
-v5.6 behavior. Use the CVA and CVI guides for Solidity interfaces, RuleV2 semantics, and
+behavior. Use the CVA and CVI guides for Solidity interfaces, RuleV2 semantics, and
 integration patterns. Where the CVI guide mentions `/validator/apply` or describes a raw
 `keccak256`, follow the v5.6 API documentation instead: `/validator/grant` or
 `/validator/register` as applicable, with EIP-191 signing of the documented lowercase

@@ -1,8 +1,8 @@
 # BridgeSure Cleanverse Endpoint and Schema Inventory
 
-Status: ready. Date: 2026-08-06 (Phase 3).
+Status: ready. Date: 2026-08-06.
 
-Authoritative source: docs/reference/hackathon/hackathon_docs.txt (Cleanverse API v5.6).
+Authoritative source: Cleanverse API v5.6 reference documentation.
 Base path: `{environment_url}/api/cooperate`; sandbox `https://uatapi.cleanverse.com/api/cooperate`.
 Role: Issue Member (confirmed) — allowed all modules used below.
 
@@ -112,7 +112,7 @@ Response `data`: `downloadUrl` (token-based, time-limited — never log or expos
 Uses: audit export evidence reference; store only a redacted reference and serve through a
 controlled path.
 
-## 3. Provisioning and mutation endpoints (Phase 5, behind confirmation gate)
+## 3. Provisioning and mutation endpoints (confirmation-gated)
 
 ### POST /generate_apass — create an A-Pass record
 
@@ -124,7 +124,7 @@ Encrypted body. Key fields: `customerId` (12+, A-Z/a-z/0-9 only), `kycSource`, `
 
 Note: a `1000` response means "override needed" — set `override: true` and retry.
 
-Used for: A-Pass generation for importer and exporter (Phase 5 write).
+Used for: A-Pass generation for importer and exporter (sandbox write).
 
 ### POST /update_status — freeze / unfreeze an A-Pass
 
@@ -140,7 +140,7 @@ Encrypted body.
 
 Response `data`: `txHash` (on-chain status update).
 
-Used for: freezing the exporter to block milestone two (Phase 5 write).
+Used for: freezing the exporter to block milestone two (sandbox write).
 
 ### POST /validator/grant — grant REGISTER_ROLE
 
@@ -148,7 +148,7 @@ Encrypted body. `chain`, `address` (recipient of REGISTER_ROLE), `owner_signatur
 lowercase `chain + address`). Response `data`: `chain`, `address`, `tx_hash`.
 
 Open item: confirm whether Cleanverse pre-grants REGISTER_ROLE to the escrow or the deployment
-address before Phase 5 provisioning.
+address before provisioning.
 
 ### POST /validator/register — register the escrow as a compliance pool
 
@@ -175,12 +175,11 @@ tx to confirm before the next rule mutation. Used only if pool rules change afte
 
 ### POST /validator/is_register / /validator/rules / /validator/is_paused
 
-Plain-JSON read endpoints for pool registration status, current rules, and pause state. Use
-`rules`/`is_register` to confirm the Phase 5 registration landed before funding.
+Plain-JSON read endpoints for pool registration status, current rules, and pause state.Use `rules`/`is_register` to confirm the registration landed before funding.
 
 ### POST /validator/set_paused
 
-Encrypted body; `chain`, `contract_address`, `paused` (bool). Not part of the demo narrative
+Encrypted body; `chain`, `contract_address`, `paused` (bool). Not part of the demo flow
 (no pool pausing planned) but the API must treat `12027`/paused as fail-closed.
 
 ### POST /query_deposit_atoken_list — supported CVA discovery
@@ -189,13 +188,13 @@ Plain JSON. `chain` (+ optional `symbol`/`address` filters). Response `data`: `c
 `tokens[]` with `origin_token`, `atoken` (each: `address`, `name`, `symbol`, `decimals`, `icon`),
 `accesscore_address`, `apass_address`.
 
-Used for: Phase 2 discovery already done — aUSDC `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`
+Used for: discovery already complete — aUSDC `0xaC0893567D43C3E7e6e35a72803df05416C1f20D`
 (origin USDC `0x534b2f3A21130d7a60830c2Df862319e593943A3`) is the only supported Monad pair.
 
 ### POST /faucet — request test tokens
 
 Plain JSON (per section). Used only for demo funding source if the importer aUSDC balance remains
-0 (Phase 5; exact request shape to be confirmed from the reference at mutation time).
+0 (exact request shape to be confirmed from the reference at mutation time).
 
 ## 4. Schema and transport implementation notes
 

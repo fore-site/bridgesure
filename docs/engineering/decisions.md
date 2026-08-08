@@ -42,7 +42,7 @@ This is preferred over ambiguous string concatenation for BridgeSure's own autho
 
 Status: accepted.
 
-docs/reference/hackathon/hackathon_docs.txt v5.6 wins for API paths and signing behavior where a
+The Cleanverse v5.6 API reference wins for API paths and signing behavior where a
 PDF differs. The PDFs win
 for contract interfaces and RuleV2 semantics.
 
