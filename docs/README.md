@@ -1,5 +1,16 @@
 # BridgeSure Documentation
 
+## Project status
+
+- **MVP implemented (2026-08-08).** The typed Cleanverse transport, the escrow state
+  machine, the `BridgeSureEscrow` contract, and the release-orchestration API are complete,
+  with passing suites (`pnpm check`, `forge test` 20/20).
+- **Demo flow green with mocks:** fund, release milestone one, block milestone two after
+  participant invalidation (balances unchanged), and export the audit packet.
+- **Remaining:** live Monad Testnet provisioning — escrow deployment, validator-pool
+  registration, A-Pass records, and funding (see the
+  [deployment checklist](planning/deployment-checklist.md)).
+
 Read these documents in order:
 
 1. [PRD](product/prd.md) defines the MVP, users, requirements, and acceptance criteria.
@@ -10,10 +21,10 @@ Read these documents in order:
 6. [Demo runbook](runbooks/demo.md) defines provisioning and the demo sequence.
 7. [Decision log](engineering/decisions.md) records choices that implementation must preserve.
 
-Planning artifacts (phase-specific):
+Planning artifacts:
 
 - [Environment validation](planning/environment-validation.md) — read-only environment report.
-- [Implementation checklist](planning/implementation-checklist.md) — ordered implementation tasks.
+- [Implementation checklist](planning/implementation-checklist.md) — ordered implementation tasks (complete).
 - [Endpoint inventory](planning/endpoint-inventory.md) — Cleanverse request/response schemas.
 - [Contract spec](planning/contract-spec.md) — BridgeSureEscrow ABI, events, errors, EIP-712.
 - [Test matrix](planning/test-matrix.md) — tests mapped to acceptance criteria.
