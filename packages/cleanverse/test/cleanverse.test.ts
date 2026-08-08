@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCipheriv, createDecipheriv } from 'node:crypto';
+import { createCipheriv } from 'node:crypto';
 import { decryptEnvelope, encryptBody } from '../src/crypto.js';
 import { redact } from '../src/redact.js';
 import { BusinessError, CleanverseClient, TransportError } from '../src/transport.js';
@@ -88,8 +88,8 @@ describe('transport', () => {
   }
 
   it('sends api-id, fresh X-Request-ID, and parses a 0000 envelope', async () => {
-    const seen: Array<{ url: string; init: RequestInit }> = [];
-    const fetchImpl = async (url: string, init: RequestInit) => {
+    const seen: { url: string; init: RequestInit }[] = [];
+    const fetchImpl = (url: string, init: RequestInit) => {
       seen.push({ url, init });
       return jsonResponse({
         code: '0000',
@@ -108,51 +108,53 @@ describe('transport', () => {
     });
     expect(result.code).toBe(4);
     const { init } = seen[0]!;
-    const headers = init.headers as Record<string, string>;
-    expect(headers['api-id']).toBe(apiId);
-    expect(headers['X-Request-ID']).toMatch(/^[0-9a-f-]{36}$/i);
+    const headers = new Headers(init.headers);
+    expect(headers.get('api-id')).toBe(apiId);
+    expect(headers.get('X-Request-ID')).toMatch(/^[0-9a-f-]{36}$/i);
     expect(init.body).toBe(JSON.stringify({ chain: 'monad', atoken: address, address }));
   });
 
   it('throws TransportError on HTTP 500', async () => {
-    const fetchImpl = async () => jsonResponse({}, { status: 500 });
-    await expect(client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow(
-      TransportError,
-    );
+    const fetchImpl = () => jsonResponse({}, { status: 500 });
+    await expect(
+      client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow(TransportError);
   });
 
   it('throws BusinessError on non-0000 top-level code (HTTP 200 business failure)', async () => {
-    const fetchImpl = async () =>
+    const fetchImpl = () =>
       jsonResponse({ code: '0002', message: 'user has no APass', data: null });
-    await expect(client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow(
-      BusinessError,
-    );
+    await expect(
+      client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow(BusinessError);
   });
 
   it('fails closed on malformed JSON', async () => {
-    const fetchImpl = async () => new Response('<html>not json</html>', { status: 200 });
-    await expect(client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow(
-      TransportError,
-    );
+    const fetchImpl = () => new Response('<html>not json</html>', { status: 200 });
+    await expect(
+      client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow(TransportError);
   });
 
   it('fails closed on network error', async () => {
-    const fetchImpl = async () => {
+    const fetchImpl = () => {
       throw new TypeError('fetch failed');
     };
-    await expect(client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow(
-      TransportError,
-    );
+    await expect(
+      client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow(TransportError);
   });
 
   it('fails closed on schema mismatch in data', async () => {
-    const fetchImpl = async () => jsonResponse({ code: '0000', data: { unexpected: true } });
-    await expect(client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow();
+    const fetchImpl = () => jsonResponse({ code: '0000', data: { unexpected: true } });
+    await expect(
+      client(fetchImpl).verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow();
   });
 
   it('encrypts bodies for /update_status', async () => {
-    const seen: Array<{ init: RequestInit }> = [];
-    const fetchImpl = async (url: string, init: RequestInit) => {
+    const seen: { init: RequestInit }[] = [];
+    const fetchImpl = (url: string, init: RequestInit) => {
       seen.push({ init });
       return jsonResponse({ code: '0000', data: { txHash: '0xabc' } });
     };
@@ -161,9 +163,13 @@ describe('transport', () => {
       wallet: { chain: 'monad', address },
     });
     expect(result.txHash).toBe('0xabc');
-    const body = JSON.parse(String(seen[0]!.init.body)) as { data: string };
-    expect(typeof body.data).toBe('string');
-    expect(body.data).not.toContain('"status"');
+    const raw: unknown = JSON.parse(String(seen[0]!.init.body));
+    if (typeof raw !== 'object' || raw === null || !('data' in raw)) {
+      throw new Error('malformed encrypted body');
+    }
+    const data = raw.data;
+    expect(typeof data).toBe('string');
+    expect(String(data)).not.toContain('"status"');
   });
 });
 
@@ -183,21 +189,41 @@ describe('mocks', () => {
   it('covers validator valid/invalid/error', async () => {
     const client = new MockCleanverseClient();
     client.setValidator(address, 'valid');
-    expect((await client.validatorVerify({ chain: 'monad', contract_address: address, user_address: address })).valid).toBe(true);
+    expect(
+      (
+        await client.validatorVerify({
+          chain: 'monad',
+          contract_address: address,
+          user_address: address,
+        })
+      ).valid,
+    ).toBe(true);
     client.setValidator(address, 'invalid');
-    expect((await client.validatorVerify({ chain: 'monad', contract_address: address, user_address: address })).valid).toBe(false);
+    expect(
+      (
+        await client.validatorVerify({
+          chain: 'monad',
+          contract_address: address,
+          user_address: address,
+        })
+      ).valid,
+    ).toBe(false);
     client.setValidator(address, 'error');
-    await expect(client.validatorVerify({ chain: 'monad', contract_address: address, user_address: address })).rejects.toThrow(
-      BusinessError,
-    );
+    await expect(
+      client.validatorVerify({ chain: 'monad', contract_address: address, user_address: address }),
+    ).rejects.toThrow(BusinessError);
   });
 
   it('scripts a one-shot timeout failure', async () => {
     const client = new MockCleanverseClient();
     client.failNext('/verify_apass', 'timeout');
-    await expect(client.verifyApass({ chain: 'monad', atoken: address, address })).rejects.toThrow();
+    await expect(
+      client.verifyApass({ chain: 'monad', atoken: address, address }),
+    ).rejects.toThrow();
     // One-shot: the next call succeeds.
     client.setApass(address, 4);
-    await expect(client.verifyApass({ chain: 'monad', atoken: address, address })).resolves.toMatchObject({ code: 4 });
+    await expect(
+      client.verifyApass({ chain: 'monad', atoken: address, address }),
+    ).resolves.toMatchObject({ code: 4 });
   });
 });

@@ -1,13 +1,15 @@
 # BridgeSure Implementation Checklist (Phase 4)
 
-Status: ready. Date: 2026-08-06 (Phase 3).
+Status: Phase 4 complete (2026-08-08). All sections 1-7 verified: `pnpm check` and the
+contract checks pass; the mocked local E2E (fund, release milestone one, blocked milestone
+two, audit export) is green. Live provisioning remains Phase 5.
 
 Ordered task list for the Phase 4 build day (Aug 7). Tasks are sequenced so that each commit
 lands on a compiling, testable state. Dependencies are listed per task; nothing below requires a
 decision that Phase 3 left open — the only runtime unknowns (pool registration path, registerApass
 eligibility, funding source) are Phase 5 confirmation steps, not code blockers.
 
-Expected commit sequence (from docs/planning/five-day-plan.md) is preserved:
+Expected commit sequence is preserved:
 
 - chore: scaffold workspace and Foundry project
 - feat(cleanverse): add encrypted typed transport and mocks
@@ -140,18 +142,18 @@ Dependencies: cleanverse + domain (inward dependency rule).
       balances, audit export — per docs/planning/test-matrix.md E2E row.
 - [ ] `pnpm check` from root: format:check + lint + typecheck + all non-live tests.
 - [ ] `forge fmt --check`, `forge build`, `forge test` from contracts/.
-- [ ] Update docs/README.md and five-day-plan.md Phase 4 status.
+- [ ] Update docs/README.md and the Phase 4 close-out status.
 - [ ] Commit 7 (if not folded into prior commits): fix: address full-suite findings.
 
 ## Definition of Done (maps to PRD acceptance criteria)
 
-| # | Criterion | Where proven |
-|---|---|---|
-| 1 | Judge can run documented local demo with mocks | test:e2e + demo runbook |
-| 2 | Compliant importer can fund the configured CVA escrow | contract fund test + domain |
-| 3 | Milestone one releases exactly once, balances correct | contract success test + E2E |
-| 4 | Exporter invalidation blocks milestone two | contract blocked test + E2E |
-| 5 | Blocked attempt leaves balances unchanged | contract + E2E balance assertions |
-| 6 | Replay/expired/wrong-trade/token/chain/party fails | contract + domain tests |
-| 7 | Audit export has success + blocked + evidence refs | api test + E2E export |
-| 8 | pnpm check and contract checks pass | Phase 4 close-out |
+| #   | Criterion                                             | Where proven                      |
+| --- | ----------------------------------------------------- | --------------------------------- |
+| 1   | Judge can run documented local demo with mocks        | test:e2e + demo runbook           |
+| 2   | Compliant importer can fund the configured CVA escrow | contract fund test + domain       |
+| 3   | Milestone one releases exactly once, balances correct | contract success test + E2E       |
+| 4   | Exporter invalidation blocks milestone two            | contract blocked test + E2E       |
+| 5   | Blocked attempt leaves balances unchanged             | contract + E2E balance assertions |
+| 6   | Replay/expired/wrong-trade/token/chain/party fails    | contract + domain tests           |
+| 7   | Audit export has success + blocked + evidence refs    | api test + E2E export             |
+| 8   | pnpm check and contract checks pass                   | Phase 4 close-out                 |

@@ -2,7 +2,7 @@
 
 ## 1. Core Data Model
 
-~~~text
+```text
 Trade
   id, chainId, escrow, importer, exporter, token, totalAmount
   status: DRAFT | FUNDED | ACTIVE | COMPLETE | HOLD | REFUNDED
@@ -19,21 +19,21 @@ ComplianceAttempt
 ReleaseAuthorization
   chainId, escrow, tradeId, milestoneId, importer, exporter
   token, amount, nonce, expiry, evidenceDigest, signer
-~~~
+```
 
 Amounts are bigint base units. Addresses are normalized for comparison but original hashes and
 identifiers are preserved in audit evidence.
 
 ## 2. State Transitions
 
-~~~text
+```text
 DRAFT --fund(token, amount)--> FUNDED
 FUNDED --release(m1, fresh pass)--> ACTIVE
 ACTIVE --release(m2, fresh pass)--> COMPLETE
 FUNDED/ACTIVE --failed compliance--> same trade state + blocked attempt
 FUNDED/ACTIVE --approved hold--> HOLD
 FUNDED/ACTIVE/HOLD --approved refund--> REFUNDED
-~~~
+```
 
 A blocked milestone attempt is not a released milestone. Retry requires a new attempt and fresh
 evidence. All invariants are checked before effects. External value calls occur after effects and
@@ -54,16 +54,16 @@ under reentrancy protection; a failed transfer reverts the transaction.
 
 The HTTP framework is an implementation choice. Handlers map to these operations:
 
-| Operation | Purpose |
-|---|---|
-| POST /trades | create the single trade |
-| GET /trades/:id | read redacted state |
-| POST /trades/:id/fund-intent | validate and prepare funding |
-| POST /trades/:id/milestones/:id/release | run checks and authorize release |
-| POST /trades/:id/hold | enter controlled hold |
-| POST /trades/:id/refund | fresh-check refund path |
-| GET /trades/:id/audit | redacted audit export |
-| POST /webhooks/atoken | optional Cleanverse status callback |
+| Operation                               | Purpose                             |
+| --------------------------------------- | ----------------------------------- |
+| POST /trades                            | create the single trade             |
+| GET /trades/:id                         | read redacted state                 |
+| POST /trades/:id/fund-intent            | validate and prepare funding        |
+| POST /trades/:id/milestones/:id/release | run checks and authorize release    |
+| POST /trades/:id/hold                   | enter controlled hold               |
+| POST /trades/:id/refund                 | fresh-check refund path             |
+| GET /trades/:id/audit                   | redacted audit export               |
+| POST /webhooks/atoken                   | optional Cleanverse status callback |
 
 Handlers parse, authorize, call a service, and map the result. Expected failures use typed result
 objects and stable machine-readable reason codes.
@@ -104,9 +104,9 @@ BridgeSureEscrow constructor inputs:
 
 The validator address for the selected Monad environment is:
 
-~~~text
+```text
 0xaC7e5179C2C7f03f209136886c172eb34F161792
-~~~
+```
 
 It was verified (2026-08-05, Phase 2) with bytecode and read-only interface calls: deployed
 only on Monad Testnet (chain ID 10143) as a minimal EIP-1967 proxy

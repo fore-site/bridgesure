@@ -1,0 +1,11 @@
+# Build artifacts and vendored code — never format these.
+node_modules/
+dist/
+build/
+.next/
+coverage/
+contracts/lib/
+contracts/out/
+contracts/cache/
+pnpm-lock.yaml
+docs/business/bridgesure-business-plan.html

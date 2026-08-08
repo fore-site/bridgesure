@@ -129,11 +129,11 @@ Release flow (order matters, checks-effects-interactions):
 2. Mark the nonce consumed (effect).
 3. Current milestone must be pending and sequential (`auth.milestoneId` is 1 then 2).
 4. `auth.amount` must equal the milestone's configured amount; `releasedAmount + amount <=
-   fundedAmount`.
+fundedAmount`.
 5. Direct validator gate: `IAPassComplianceValidator(validator).complianceVerify(address(this),
-   importer)` and same for `exporter` — both must return true; revert on revert.
+importer)` and same for `exporter` — both must return true; revert on revert.
 6. Optional CVA policy gate: `IATokenPolicy.canTransfer(cvaToken, address(this), exporter,
-   amount)`.
+amount)`.
 7. `SafeERC20.safeTransfer(cvaToken, exporter, amount)`; increment accounting; emit event.
 
 A revert, paused pool, or false result at any step reverts the whole transaction — no partial
@@ -232,7 +232,7 @@ error RefundNotAllowed();
 error ZeroAddress();
 error ZeroAmount();
 error OnlyAdmin();
-error OnlyImporter();
+error WrongParty();
 ```
 
 Every error is revertible and carries no sensitive data.

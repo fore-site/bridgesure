@@ -26,6 +26,11 @@ const SECRET_KEYS = new Set([
 
 const URL_PATTERN = /https?:\/\/[^\s"']+/g;
 
+/** Narrow a value to a plain record (AGENTS.md: prefer type guards over casts). */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /** Redact a value for logging. Handles nested objects and arrays recursively. */
 export function redact(value: unknown, depth = 0): unknown {
   if (value === null || value === undefined) return value;
@@ -33,9 +38,9 @@ export function redact(value: unknown, depth = 0): unknown {
     return value.replace(URL_PATTERN, (url) => redactUrl(url));
   }
   if (Array.isArray(value)) return value.map((item) => redact(item, depth + 1));
-  if (typeof value === 'object') {
+  if (isRecord(value)) {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(value)) {
       out[k] = SECRET_KEYS.has(k) ? REDACTED : redact(v, depth + 1);
     }
     return out;
@@ -47,8 +52,8 @@ export function redact(value: unknown, depth = 0): unknown {
 export function redactUrl(url: string): string {
   if (url.includes('download-token') || url.includes('token=') || url.includes('token/')) {
     // Strip query/fragment and any trailing token path segment.
-    const [head] = url.split(/[?&#]/);
-    const base = head!.replace(/\/[^/]+$/, '');
+    const head = url.split(/[?&#]/)[0] ?? url;
+    const base = head.replace(/\/[^/]+$/, '');
     return `${base}#${REDACTED}`;
   }
   return url;

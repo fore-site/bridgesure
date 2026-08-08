@@ -10,20 +10,20 @@
 
 ## Main Threats and Controls
 
-| Threat | Control |
-|---|---|
-| UI fabricates approval | contract accepts only a trusted signer authorization |
-| stale compliance result | short freshness window and authorization expiry |
-| API returns HTTP 200 failure | require code 0000 and validate endpoint payload |
-| partial compliance success | all required checks must pass in the same attempt |
-| signature replay | chain/contract/trade binding and consumed nonce |
-| cross-chain or cross-trade use | EIP-712 domain plus exact trade and milestone fields |
-| token substitution | immutable configured CVA and signed token field |
-| recipient or amount substitution | signed parties and amount |
-| validator failure or pause | revert/fail closed; do not move funds |
-| reentrancy or malicious token | ReentrancyGuard, CEI, SafeERC20, configured token only |
-| secret or PII leakage | server-only credentials, redaction, hashes/opaque IDs |
-| duplicate retry | idempotency keys, receipt reconciliation, nonce discipline |
+| Threat                           | Control                                                    |
+| -------------------------------- | ---------------------------------------------------------- |
+| UI fabricates approval           | contract accepts only a trusted signer authorization       |
+| stale compliance result          | short freshness window and authorization expiry            |
+| API returns HTTP 200 failure     | require code 0000 and validate endpoint payload            |
+| partial compliance success       | all required checks must pass in the same attempt          |
+| signature replay                 | chain/contract/trade binding and consumed nonce            |
+| cross-chain or cross-trade use   | EIP-712 domain plus exact trade and milestone fields       |
+| token substitution               | immutable configured CVA and signed token field            |
+| recipient or amount substitution | signed parties and amount                                  |
+| validator failure or pause       | revert/fail closed; do not move funds                      |
+| reentrancy or malicious token    | ReentrancyGuard, CEI, SafeERC20, configured token only     |
+| secret or PII leakage            | server-only credentials, redaction, hashes/opaque IDs      |
+| duplicate retry                  | idempotency keys, receipt reconciliation, nonce discipline |
 
 ## Release Invariant
 

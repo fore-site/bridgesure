@@ -1,9 +1,5 @@
-export {
-  CleanverseClient,
-  TransportError,
-  BusinessError,
-  DEFAULT_BASE_URL,
-} from './transport.js';
+export { CleanverseClient, TransportError, BusinessError, DEFAULT_BASE_URL } from './transport.js';
+export type { CleanverseApi } from './transport.js';
 export { encryptBody, decryptEnvelope, decodeKey } from './crypto.js';
 export { redact, redactUrl } from './redact.js';
 export {
@@ -11,6 +7,7 @@ export {
   parseData,
   envelopeSchema,
   chainSchema,
+  type Chain,
   verifyApassDataSchema,
   validatorVerifyDataSchema,
   queryApassDataSchema,

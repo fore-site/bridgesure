@@ -79,7 +79,7 @@ export function decideRelease(input: {
 
   const { trade } = input;
   const milestone = trade.milestones.find((m) => m.id === input.milestoneId);
-  if (!milestone || milestone.status !== 'PENDING') return denied('LOCAL_STATE_DENIED');
+  if (milestone?.status !== 'PENDING') return denied('LOCAL_STATE_DENIED');
   if (milestoneIdOutOfSequence(trade, input.milestoneId)) return denied('LOCAL_STATE_DENIED');
   if (trade.status !== 'FUNDED' && trade.status !== 'ACTIVE') return denied('LOCAL_STATE_DENIED');
 
@@ -88,13 +88,20 @@ export function decideRelease(input: {
 
 function milestoneIdOutOfSequence(trade: Trade, milestoneId: 1 | 2): boolean {
   if (milestoneId === 1) return false;
-  return trade.milestones[0]?.status !== 'RELEASED';
+  return trade.milestones[0].status !== 'RELEASED';
 }
 
-export function markMilestoneReleased(trade: Trade, milestoneId: 1 | 2, evidenceHash: string): Trade {
-  const milestones = trade.milestones.map((m) =>
-    m.id === milestoneId ? { ...m, status: 'RELEASED' as const, evidenceHash } : m,
-  ) as [Milestone, Milestone];
+export function markMilestoneReleased(
+  trade: Trade,
+  milestoneId: 1 | 2,
+  evidenceHash: string,
+): Trade {
+  const update = (m: Milestone): Milestone =>
+    m.id === milestoneId ? { ...m, status: 'RELEASED' as const, evidenceHash } : m;
+  const milestones: [Milestone, Milestone] = [
+    update(trade.milestones[0]),
+    update(trade.milestones[1]),
+  ];
   const status: TradeStatus =
     milestoneId === 2 ? 'COMPLETE' : trade.status === 'FUNDED' ? 'ACTIVE' : trade.status;
   return { ...trade, milestones, status };
@@ -110,10 +117,7 @@ export function refund(trade: Trade): Trade {
 }
 
 export function releasedAmount(trade: Trade): bigint {
-  return trade.milestones.reduce(
-    (sum, m) => (m.status === 'RELEASED' ? sum + m.amount : sum),
-    0n,
-  );
+  return trade.milestones.reduce((sum, m) => (m.status === 'RELEASED' ? sum + m.amount : sum), 0n);
 }
 
 export function fundedAmount(trade: Trade): bigint {
@@ -133,12 +137,14 @@ export function invariantReleasedLteFunded(trade: Trade): boolean {
 }
 
 export function invariantMilestoneOnce(trade: Trade): boolean {
-  return trade.milestones.every((m) => m.status === 'RELEASED' || m.status === 'PENDING' || m.status === 'BLOCKED');
+  // Blocked attempts are recorded at the attempt level; a milestone itself is
+  // either pending or released, never blocked.
+  return trade.milestones.every((m) => m.status === 'PENDING' || m.status === 'RELEASED');
 }
 
 export function invariantSequence(trade: Trade): boolean {
-  if (trade.milestones[1]?.status === 'RELEASED') {
-    return trade.milestones[0]?.status === 'RELEASED';
+  if (trade.milestones[1].status === 'RELEASED') {
+    return trade.milestones[0].status === 'RELEASED';
   }
   return true;
 }
@@ -146,7 +152,7 @@ export function invariantSequence(trade: Trade): boolean {
 export function invariantNonceConsumedOnce(authorizations: ReleaseAuthorization[]): boolean {
   const seen = new Set<string>();
   for (const auth of authorizations) {
-    const key = `${auth.escrow}:${auth.tradeId}:${auth.milestoneId}:${auth.nonce}`;
+    const key = [auth.escrow, auth.tradeId, auth.milestoneId, auth.nonce].join(':');
     if (seen.has(key)) return false;
     seen.add(key);
   }
@@ -173,17 +179,16 @@ export function authorizationBinds(input: {
   if (normalizeAddress(auth.importer) !== trade.importer) return denied('LOCAL_STATE_DENIED');
   if (normalizeAddress(auth.exporter) !== trade.exporter) return denied('LOCAL_STATE_DENIED');
   if (normalizeAddress(auth.token) !== trade.token) return denied('LOCAL_STATE_DENIED');
-  if (auth.amount !== trade.milestones[milestoneId - 1]?.amount) return denied('LOCAL_STATE_DENIED');
+  if (auth.amount !== trade.milestones[milestoneId - 1]?.amount)
+    return denied('LOCAL_STATE_DENIED');
   if (normalizeAddress(auth.signer) !== input.expectedSigner) return denied('LOCAL_STATE_DENIED');
   if (auth.expiry <= input.now) return denied('AUTH_EXPIRED');
   return { decision: 'allowed', reasonCode: null };
 }
 
 export function authReplay(auth: ReleaseAuthorization, usedNonces: Set<string>): ReleaseDecision {
-  const key = `${auth.escrow}:${auth.tradeId}:${auth.milestoneId}:${auth.nonce}`;
-  return usedNonces.has(key)
-    ? denied('AUTH_REPLAY')
-    : { decision: 'allowed', reasonCode: null };
+  const key = [auth.escrow, auth.tradeId, auth.milestoneId, auth.nonce].join(':');
+  return usedNonces.has(key) ? denied('AUTH_REPLAY') : { decision: 'allowed', reasonCode: null };
 }
 
 export function recordAttempt(attempt: ComplianceAttempt): ComplianceAttempt {

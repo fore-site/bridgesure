@@ -6,6 +6,23 @@ dist/
 coverage/
 *.log
 
+# Build artifacts
+.next/
+build/
+*.tsbuildinfo
+.turbo/
+
+# Foundry
+contracts/lib/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
 docs/reference/hackathon/
 docs/reference/cleanverse/
 docs/planning/five-day-plan.md
+
+.agents/
+.codex/
+.commandcode/
+.freebuff/

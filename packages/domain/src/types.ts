@@ -14,14 +14,14 @@ export type TradeStatus = 'DRAFT' | 'FUNDED' | 'ACTIVE' | 'COMPLETE' | 'HOLD' | 
 
 export type MilestoneStatus = 'PENDING' | 'RELEASED' | 'BLOCKED';
 
-export type Milestone = {
+export interface Milestone {
   id: 1 | 2;
   amount: bigint;
   status: MilestoneStatus;
   evidenceHash: string | null;
-};
+}
 
-export type Trade = {
+export interface Trade {
   id: string;
   chainId: bigint;
   escrow: string; // normalized address
@@ -31,9 +31,9 @@ export type Trade = {
   totalAmount: bigint;
   status: TradeStatus;
   milestones: [Milestone, Milestone];
-};
+}
 
-export type ComplianceAttempt = {
+export interface ComplianceAttempt {
   attemptId: string;
   tradeId: string;
   milestoneId: 1 | 2;
@@ -43,9 +43,9 @@ export type ComplianceAttempt = {
   observedAt: number; // Unix seconds (UTC)
   decision: 'allowed' | 'denied';
   reasonCode: ReasonCode | null;
-};
+}
 
-export type ReleaseAuthorization = {
+export interface ReleaseAuthorization {
   chainId: bigint;
   escrow: string;
   tradeId: string;
@@ -58,7 +58,7 @@ export type ReleaseAuthorization = {
   expiry: number; // Unix seconds
   evidenceDigest: string;
   signer: string;
-};
+}
 
 /** Stable machine-readable failure codes (docs/engineering/technical-design.md §9). */
 export type ReasonCode =
@@ -74,9 +74,7 @@ export type ReasonCode =
   | 'TOKEN_TRANSFER_REJECTED';
 
 export type ReleaseDecision =
-  | { decision: 'allowed'; reasonCode: null }
-  | { decision: 'denied'; reasonCode: ReasonCode };
+  { decision: 'allowed'; reasonCode: null } | { decision: 'denied'; reasonCode: ReasonCode };
 
 export type TradeTransitionResult =
-  | { ok: true; trade: Trade }
-  | { ok: false; reasonCode: ReasonCode };
+  { ok: true; trade: Trade } | { ok: false; reasonCode: ReasonCode };

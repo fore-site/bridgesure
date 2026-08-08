@@ -12,7 +12,6 @@ Read these documents in order:
 
 Planning artifacts (phase-specific):
 
-- [Five-day plan](planning/five-day-plan.md) — phase schedule and delivery allocation.
 - [Environment validation](planning/environment-validation.md) — Phase 2 read-only report.
 - [Implementation checklist](planning/implementation-checklist.md) — Phase 4 ordered tasks.
 - [Endpoint inventory](planning/endpoint-inventory.md) — Cleanverse request/response schemas.

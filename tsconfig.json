@@ -1,0 +1,7 @@
+{
+  "extends": "@bridgesure/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": []
+}

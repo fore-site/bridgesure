@@ -21,9 +21,9 @@ export const chainSchema = z.enum([
   'platon',
 ]);
 
-export const addressSchema = z
-  .string()
-  .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x EVM address');
+export type Chain = z.infer<typeof chainSchema>;
+
+export const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x EVM address');
 
 /** Top-level Cleanverse envelope. `code === "0000"` means the API call completed. */
 export const envelopeSchema = z.object({
@@ -172,7 +172,10 @@ export type TravelRuleData = z.infer<typeof travelRuleDataSchema>;
 // ---------------------------------------------------------------------------
 
 export const updateStatusRequestSchema = z.object({
-  customerId: z.string().regex(/^[A-Za-z0-9]{12,}$/).optional(),
+  customerId: z
+    .string()
+    .regex(/^[A-Za-z0-9]{12,}$/)
+    .optional(),
   cvRecordId: z.string().optional(),
   status: z.enum(['1', '2']),
   blacklistReason: z.string().optional(),
@@ -269,7 +272,9 @@ export class EnvelopeError extends Error {
 
 export class SchemaError extends Error {
   constructor(public readonly issues: z.ZodError) {
-    super(`response data failed schema validation: ${issues.issues.map((i) => i.path.join('.')).join(', ')}`);
+    super(
+      `response data failed schema validation: ${issues.issues.map((i) => i.path.join('.')).join(', ')}`,
+    );
     this.name = 'SchemaError';
   }
 }

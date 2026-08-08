@@ -20,6 +20,7 @@ export default tseslint.config(
       '**/.next/**',
       '**/node_modules/**',
       '**/coverage/**',
+      'contracts/lib/**', // vendored Foundry dependencies (openzeppelin, forge-std)
       '**/*.config.js',
       '**/*.config.mjs',
     ],
@@ -51,6 +52,8 @@ export default tseslint.config(
             'Avoid `as` type casts; validate external data with schemas and narrow with type guards (AGENTS.md).',
         },
       ],
+      // `_`-prefixed parameters are intentionally unused (e.g. mock request shapes).
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       // AGENTS.md: model expected failures with typed results/errors; no thrown strings,
       // no silently swallowed errors.
       '@typescript-eslint/only-throw-error': 'error',

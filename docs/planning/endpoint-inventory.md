@@ -27,11 +27,11 @@ Role: Issue Member (confirmed) — allowed all modules used below.
 
 Plain JSON.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| chain | string | yes | `monad` |
-| atoken | string | yes | A-Token (CVA) contract address |
-| address | string | yes | user wallet to verify |
+| Field   | Type   | Req | Notes                          |
+| ------- | ------ | --- | ------------------------------ |
+| chain   | string | yes | `monad`                        |
+| atoken  | string | yes | A-Token (CVA) contract address |
+| address | string | yes | user wallet to verify          |
 
 Response `data`: `chain`, `atoken`, `address` (echo), `code` (int), `message`, `magickLink`.
 
@@ -44,11 +44,11 @@ Release gate: `code === "0000"` AND `data.code === 4` for every required partici
 
 Plain JSON.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| chain | string | yes | `monad` |
+| Field            | Type   | Req | Notes                                 |
+| ---------------- | ------ | --- | ------------------------------------- |
+| chain            | string | yes | `monad`                               |
 | contract_address | string | yes | registered pool (the deployed escrow) |
-| user_address | string | yes | user wallet to evaluate |
+| user_address     | string | yes | user wallet to evaluate               |
 
 Response `data`: `chain`, `contract_address`, `user_address` (echo), `valid` (bool).
 
@@ -61,9 +61,9 @@ Release gate: `code === "0000"` AND `data.valid === true` for each required part
 
 Plain JSON.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| chain | string | yes | `monad` |
+| Field   | Type   | Req | Notes          |
+| ------- | ------ | --- | -------------- |
+| chain   | string | yes | `monad`        |
 | address | string | yes | wallet address |
 
 Response `data`: `cvRecordId`, `subTier` (int), `tier` (string), `status` (int: 1 activate,
@@ -79,15 +79,15 @@ to a blocked decision.
 
 Plain JSON.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| chain | string | yes | `monad` |
-| address | string | yes | wallet |
-| symbol | string | no | origin or A-Token symbol, e.g. `usdc`, `ausdc` |
-| startTime / endTime | long | no | Unix seconds |
-| txHash | string | no | filter |
-| type | string | no | e.g. transfer/deposit/withdraw |
-| page / pageSize | int | no | defaults 1 / 10 |
+| Field               | Type   | Req | Notes                                          |
+| ------------------- | ------ | --- | ---------------------------------------------- |
+| chain               | string | yes | `monad`                                        |
+| address             | string | yes | wallet                                         |
+| symbol              | string | no  | origin or A-Token symbol, e.g. `usdc`, `ausdc` |
+| startTime / endTime | long   | no  | Unix seconds                                   |
+| txHash              | string | no  | filter                                         |
+| type                | string | no  | e.g. transfer/deposit/withdraw                 |
+| page / pageSize     | int    | no  | defaults 1 / 10                                |
 
 Response `data`: `total_count`, `txs[]` with `chain`, `symbol`, `tx_hash`, `from_address`,
 `from_org_name`, `to_address`, `amount` (string), `fee_amount`, `pay_fee_index`, `type`,
@@ -99,12 +99,12 @@ Uses: audit export, receipt reconciliation, demo evidence.
 
 Plain JSON.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| customerId | string | no | 12+ chars, A-Z/a-z/0-9 only |
-| cvRecordId | string | no | record ID |
-| txHash | string | yes | withdraw txHash for Travel Rule, transfer txHash for Transaction report |
-| wallet.chain / wallet.address | string | yes | requester wallet |
+| Field                         | Type   | Req | Notes                                                                   |
+| ----------------------------- | ------ | --- | ----------------------------------------------------------------------- |
+| customerId                    | string | no  | 12+ chars, A-Z/a-z/0-9 only                                             |
+| cvRecordId                    | string | no  | record ID                                                               |
+| txHash                        | string | yes | withdraw txHash for Travel Rule, transfer txHash for Transaction report |
+| wallet.chain / wallet.address | string | yes | requester wallet                                                        |
 
 Response `data`: `downloadUrl` (token-based, time-limited — never log or expose raw),
 `fileName`.
@@ -130,13 +130,13 @@ Used for: A-Pass generation for importer and exporter (Phase 5 write).
 
 Encrypted body.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| customerId | string | no | 12+ chars, A-Z/a-z/0-9 only |
-| cvRecordId | string | no | record ID |
-| status | string | yes | `1` activate (unfreeze), `2` freeze |
-| blacklistReason | string | no | e.g. when status is 2 |
-| wallet.chain / wallet.address | string | yes | target wallet |
+| Field                         | Type   | Req | Notes                               |
+| ----------------------------- | ------ | --- | ----------------------------------- |
+| customerId                    | string | no  | 12+ chars, A-Z/a-z/0-9 only         |
+| cvRecordId                    | string | no  | record ID                           |
+| status                        | string | yes | `1` activate (unfreeze), `2` freeze |
+| blacklistReason               | string | no  | e.g. when status is 2               |
+| wallet.chain / wallet.address | string | yes | target wallet                       |
 
 Response `data`: `txHash` (on-chain status update).
 
@@ -154,12 +154,12 @@ address before Phase 5 provisioning.
 
 Encrypted body.
 
-| Field | Type | Req | Notes |
-|---|---|---|---|
-| chain | string | yes | `monad` |
-| contract_address | string | yes | the deployed escrow |
-| rule | object | yes | Rule object (compat form, see below) |
-| owner_signature | string | yes | EIP-191 over lowercase `chain + contract_address` |
+| Field            | Type   | Req | Notes                                             |
+| ---------------- | ------ | --- | ------------------------------------------------- |
+| chain            | string | yes | `monad`                                           |
+| contract_address | string | yes | the deployed escrow                               |
+| rule             | object | yes | Rule object (compat form, see below)              |
+| owner_signature  | string | yes | EIP-191 over lowercase `chain + contract_address` |
 
 Response `data`: `chain`, `contract_address`, `tx_hash`.
 

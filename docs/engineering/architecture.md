@@ -25,7 +25,7 @@ evidence identifiers are recorded on-chain or in the audit store.
 
 ## 3. System Context
 
-~~~text
+```text
 Importer / Exporter wallets
           |
           v
@@ -41,7 +41,7 @@ Importer / Exporter wallets
 Admin/deployer wallet ---> BridgeSureEscrow ---> CVA token
                                       |
                                       +--------> IAPassComplianceValidator
-~~~
+```
 
 The browser calls only the BridgeSure API. The API is the sole Cleanverse client and creates
 short-lived signed release authorizations after fresh checks. The contract independently checks
@@ -49,7 +49,7 @@ the validator and verifies the authorization immediately before moving tokens.
 
 ## 4. Repository Topology
 
-~~~text
+```text
 apps/web/                 Next.js UI; public configuration only
 apps/api/                 Node API, orchestration, auth, audit export
 packages/cleanverse/      transport, AES, schemas, typed endpoint clients
@@ -57,7 +57,7 @@ packages/domain/          framework-free trade/compliance state machine
 packages/config/          shared TypeScript/lint/format configuration
 contracts/                Foundry Solidity contracts, scripts, tests
 docs/                     design records, runbook, API notes
-~~~
+```
 
 Dependency direction is inward: web -> domain; API -> domain + cleanverse; cleanverse -> no app;
 domain -> no framework/HTTP/wallet/Cleanverse; contracts are independent. Cross-package imports
@@ -96,13 +96,13 @@ reentrancy-safe transfers.
 
 ## 6. Trust Boundaries
 
-| Boundary | Untrusted input | Required control |
-|---|---|---|
-| Browser -> API | user parameters, evidence references | authentication, schema validation, authorization |
-| API -> Cleanverse | encrypted payload, headers | UUID request ID, timeout, AES, response schema, code 0000 |
-| Cleanverse -> API | status, codes, URLs, identity metadata | fail-closed validation, redaction, freshness checks |
-| API -> contract | signed authorization | EIP-712 domain binding, expiry, nonce, exact fields |
-| Contract -> token/validator | external calls | allowlist, CEI, SafeERC20, reentrancy guard, failed-call rejection |
+| Boundary                    | Untrusted input                        | Required control                                                   |
+| --------------------------- | -------------------------------------- | ------------------------------------------------------------------ |
+| Browser -> API              | user parameters, evidence references   | authentication, schema validation, authorization                   |
+| API -> Cleanverse           | encrypted payload, headers             | UUID request ID, timeout, AES, response schema, code 0000          |
+| Cleanverse -> API           | status, codes, URLs, identity metadata | fail-closed validation, redaction, freshness checks                |
+| API -> contract             | signed authorization                   | EIP-712 domain binding, expiry, nonce, exact fields                |
+| Contract -> token/validator | external calls                         | allowlist, CEI, SafeERC20, reentrancy guard, failed-call rejection |
 
 ## 7. Compliance Decision Flow
 

@@ -23,7 +23,8 @@ export function decryptEnvelope(keyBase64: string, envelope: { data: string }): 
   const decipher = createDecipheriv(keyAlgorithm(key), key, iv);
   const ciphertext = Buffer.from(envelope.data, 'base64');
   const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return JSON.parse(plaintext.toString('utf8')) as unknown;
+  const parsed: unknown = JSON.parse(plaintext.toString('utf8'));
+  return parsed;
 }
 
 export function decodeKey(keyBase64: string): Buffer {

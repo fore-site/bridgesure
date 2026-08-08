@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  parseData,
-  type Envelope,
+  envelopeSchema,
   type GenerateApassRequest,
   type GenerateApassData,
   type QueryApassData,
@@ -31,13 +30,34 @@ import { encryptBody } from './crypto.js';
 
 export const DEFAULT_BASE_URL = 'https://uatapi.cleanverse.com/api/cooperate';
 
-export type TransportOptions = {
+/**
+ * The Cleanverse surface the rest of BridgeSure consumes. Both the real
+ * client and the deterministic mock implement it, so the API layer can swap
+ * implementations (D-007).
+ */
+export interface CleanverseApi {
+  verifyApass(req: VerifyApassRequest): Promise<VerifyApassData>;
+  validatorVerify(req: ValidatorVerifyRequest): Promise<ValidatorVerifyData>;
+  queryApass(req: QueryApassRequest): Promise<QueryApassData>;
+  queryTxs(req: QueryTxsRequest): Promise<QueryTxsData>;
+  travelRule(req: TravelRuleRequest): Promise<TravelRuleData>;
+  updateStatus(req: UpdateStatusRequest): Promise<UpdateStatusData>;
+  generateApass(req: GenerateApassRequest): Promise<GenerateApassData>;
+  validatorRegister(req: ValidatorRegisterRequest): Promise<ValidatorTxData>;
+  validatorSetPaused(req: {
+    chain: string;
+    contract_address: string;
+    paused: boolean;
+  }): Promise<ValidatorTxData>;
+}
+
+export interface TransportOptions {
   apiId: string;
   apiKey?: string;
   baseUrl?: string;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
-};
+}
 
 /**
  * Typed Cleanverse transport.
@@ -47,7 +67,7 @@ export type TransportOptions = {
  * not success: the top-level `code` must be `0000` and the payload must pass
  * its runtime schema, otherwise the call fails closed.
  */
-export class CleanverseClient {
+export class CleanverseClient implements CleanverseApi {
   private readonly apiId: string;
   private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
@@ -63,7 +83,7 @@ export class CleanverseClient {
     if (!this.apiKey) throw new Error('CleanverseClient requires an apiKey');
   }
 
-  private async post<T>(path: string, body: unknown, encrypted: boolean): Promise<T> {
+  private async post(path: string, body: unknown, encrypted: boolean): Promise<unknown> {
     const requestId = randomUUID();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -81,62 +101,76 @@ export class CleanverseClient {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {
-      throw new TransportError(requestId, err instanceof Error ? err.message : 'network error', err);
+      throw new TransportError(
+        requestId,
+        err instanceof Error ? err.message : 'network error',
+        err,
+      );
     }
 
     if (!response.ok) {
-      throw new TransportError(requestId, `HTTP ${response.status}`, undefined, response.status);
+      throw new TransportError(
+        requestId,
+        `HTTP ${String(response.status)}`,
+        undefined,
+        response.status,
+      );
     }
 
-    let envelope: Envelope;
+    let raw: unknown;
     try {
-      envelope = (await response.json()) as Envelope;
+      raw = await response.json();
     } catch {
       throw new TransportError(requestId, 'malformed JSON response body');
     }
+    const parsed = envelopeSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new TransportError(requestId, 'malformed response envelope');
+    }
+    const envelope = parsed.data;
     if (envelope.code !== '0000') {
       throw new BusinessError(requestId, envelope.code, envelope.message ?? '');
     }
-    return envelope.data as T;
+    return envelope.data;
   }
 
   async verifyApass(req: VerifyApassRequest): Promise<VerifyApassData> {
-    const data = await this.post<unknown>('/verify_apass', req, false);
+    const data = await this.post('/verify_apass', req, false);
     return verifyApassDataSchema.parse(data);
   }
 
   async validatorVerify(req: ValidatorVerifyRequest): Promise<ValidatorVerifyData> {
-    const data = await this.post<unknown>('/validator/verify', req, false);
+    const data = await this.post('/validator/verify', req, false);
     return validatorVerifyDataSchema.parse(data);
   }
 
   async queryApass(req: QueryApassRequest): Promise<QueryApassData> {
-    const data = await this.post<unknown>('/query_apass', req, false);
+    const data = await this.post('/query_apass', req, false);
     return queryApassDataSchema.parse(data);
   }
 
   async queryTxs(req: QueryTxsRequest): Promise<QueryTxsData> {
-    const data = await this.post<unknown>('/query_txs', req, false);
+    const data = await this.post('/query_txs', req, false);
     return queryTxsDataSchema.parse(data);
   }
 
   async travelRule(req: TravelRuleRequest): Promise<TravelRuleData> {
-    const data = await this.post<unknown>('/download_travel_rule', req, false);
+    const data = await this.post('/download_travel_rule', req, false);
     return travelRuleDataSchema.parse(data);
   }
 
   async updateStatus(req: UpdateStatusRequest): Promise<UpdateStatusData> {
-    const data = await this.post<unknown>('/update_status', req, true);
+    const data = await this.post('/update_status', req, true);
     return updateStatusDataSchema.parse(data);
   }
 
   async generateApass(req: GenerateApassRequest): Promise<GenerateApassData> {
-    const data = await this.post<unknown>('/generate_apass', req, true);
+    const data = await this.post('/generate_apass', req, true);
     return generateApassDataSchema.parse(data);
   }
 
   async validatorRegister(req: ValidatorRegisterRequest): Promise<ValidatorTxData> {
-    const data = await this.post<unknown>('/validator/register', req, true);
+    const data = await this.post('/validator/register', req, true);
     return validatorTxDataSchema.parse(data);
   }
 
@@ -145,7 +179,7 @@ export class CleanverseClient {
     contract_address: string;
     paused: boolean;
   }): Promise<ValidatorTxData> {
-    const data = await this.post<unknown>('/validator/set_paused', req, true);
+    const data = await this.post('/validator/set_paused', req, true);
     return validatorTxDataSchema.parse(data);
   }
 }
@@ -174,6 +208,3 @@ export class BusinessError extends Error {
     this.name = 'BusinessError';
   }
 }
-
-// Re-export so consumers can catch schema failures uniformly.
-export { parseData };

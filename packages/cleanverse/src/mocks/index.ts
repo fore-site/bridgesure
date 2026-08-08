@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- Mock methods return Promises to satisfy CleanverseApi; there is no real I/O to await. */
 import type {
   GenerateApassData,
   GenerateApassRequest,
@@ -9,13 +10,14 @@ import type {
   TravelRuleRequest,
   UpdateStatusData,
   UpdateStatusRequest,
+  ValidatorRegisterRequest,
   ValidatorTxData,
   ValidatorVerifyData,
   ValidatorVerifyRequest,
   VerifyApassData,
   VerifyApassRequest,
 } from '../schemas.js';
-import { BusinessError } from '../transport.js';
+import { BusinessError, type CleanverseApi } from '../transport.js';
 
 /**
  * Deterministic Cleanverse mocks for tests and the local e2e demo.
@@ -30,20 +32,20 @@ export type ApassOutcome = 1 | 2 | 3 | 4;
 export type ValidatorOutcome = 'valid' | 'invalid' | 'error';
 export type CallFailure = 'business' | 'timeout' | 'malformed' | 'network';
 
-export type MockScript = {
+export interface MockScript {
   /** Per-participant A-Pass verification outcome, keyed by address. */
   apass: Map<string, ApassOutcome>;
   /** Per-participant validator outcome, keyed by address. */
   validator: Map<string, ValidatorOutcome>;
   /** Fail the next call of a given type. */
   fail: { endpoint: string; kind: CallFailure } | undefined;
-};
+}
 
 function defaultMockScript(): MockScript {
   return { apass: new Map(), validator: new Map(), fail: undefined };
 }
 
-export class MockCleanverseClient {
+export class MockCleanverseClient implements CleanverseApi {
   constructor(public script: MockScript = defaultMockScript()) {}
 
   setApass(address: string, outcome: ApassOutcome): this {
@@ -63,18 +65,17 @@ export class MockCleanverseClient {
 
   private maybeFail(endpoint: string): void {
     const f = this.script.fail;
-    if (f && f.endpoint === endpoint) {
-      this.script.fail = undefined;
-      switch (f.kind) {
-        case 'business':
-          throw new BusinessError('mock-request-id', '0002', 'mock business failure');
-        case 'timeout':
-          throw new Error('request timed out');
-        case 'malformed':
-          throw new Error('unexpected end of JSON input');
-        case 'network':
-          throw new Error('fetch failed');
-      }
+    if (f?.endpoint !== endpoint) return;
+    this.script.fail = undefined;
+    switch (f.kind) {
+      case 'business':
+        throw new BusinessError('mock-request-id', '0002', 'mock business failure');
+      case 'timeout':
+        throw new Error('request timed out');
+      case 'malformed':
+        throw new Error('unexpected end of JSON input');
+      case 'network':
+        throw new Error('fetch failed');
     }
   }
 
@@ -106,7 +107,12 @@ export class MockCleanverseClient {
 
   async queryApass(_req: QueryApassRequest): Promise<QueryApassData> {
     this.maybeFail('/query_apass');
-    return { cvRecordId: 'mock-record', status: 1, expirationTime: 2_000_000_000, countries: ['US'] };
+    return {
+      cvRecordId: 'mock-record',
+      status: 1,
+      expirationTime: 2_000_000_000,
+      countries: ['US'],
+    };
   }
 
   async queryTxs(_req: QueryTxsRequest): Promise<QueryTxsData> {
@@ -129,21 +135,34 @@ export class MockCleanverseClient {
 
   async generateApass(req: GenerateApassRequest): Promise<GenerateApassData> {
     this.maybeFail('/generate_apass');
-    return { customerId: req.customerId, cvRecordId: 'mock-record', wallet: { address: req.wallet.address, chain: req.wallet.chain } };
+    return {
+      customerId: req.customerId,
+      cvRecordId: 'mock-record',
+      wallet: { address: req.wallet.address, chain: req.wallet.chain },
+    };
   }
 
-  async validatorRegister(req: {
-    chain: 'monad' | 'base' | 'solana' | 'ethereum' | 'polygon' | 'arbitrum' | 'bsc' | 'avalanche' | 'hashkey' | 'platon';
-    contract_address: string;
-    rule: object;
-    owner_signature: string;
-  }): Promise<ValidatorTxData> {
+  async validatorRegister(req: ValidatorRegisterRequest): Promise<ValidatorTxData> {
     this.maybeFail('/validator/register');
-    return { chain: req.chain, contract_address: req.contract_address, tx_hash: '0xmock-register-tx' };
+    return {
+      chain: req.chain,
+      contract_address: req.contract_address,
+      tx_hash: '0xmock-register-tx',
+    };
   }
 
   async validatorSetPaused(req: {
-    chain: 'monad' | 'base' | 'solana' | 'ethereum' | 'polygon' | 'arbitrum' | 'bsc' | 'avalanche' | 'hashkey' | 'platon';
+    chain:
+      | 'monad'
+      | 'base'
+      | 'solana'
+      | 'ethereum'
+      | 'polygon'
+      | 'arbitrum'
+      | 'bsc'
+      | 'avalanche'
+      | 'hashkey'
+      | 'platon';
     contract_address: string;
     paused: boolean;
   }): Promise<ValidatorTxData> {
@@ -151,5 +170,3 @@ export class MockCleanverseClient {
     return { chain: req.chain, contract_address: req.contract_address, tx_hash: '0xmock-pause-tx' };
   }
 }
-
-export type CleanverseApi = MockCleanverseClient;

@@ -229,7 +229,12 @@ describe('authorization binding', () => {
       decision: 'denied',
       reasonCode: 'LOCAL_STATE_DENIED',
     });
-    expect(authorizationBinds({ ...base, auth: makeAuth({ escrow: '0x1111111111111111111111111111111111111111' }) })).toEqual({
+    expect(
+      authorizationBinds({
+        ...base,
+        auth: makeAuth({ escrow: '0x1111111111111111111111111111111111111111' }),
+      }),
+    ).toEqual({
       decision: 'denied',
       reasonCode: 'LOCAL_STATE_DENIED',
     });
@@ -241,11 +246,21 @@ describe('authorization binding', () => {
       decision: 'denied',
       reasonCode: 'LOCAL_STATE_DENIED',
     });
-    expect(authorizationBinds({ ...base, auth: makeAuth({ importer: '0x2222222222222222222222222222222222222222' }) })).toEqual({
+    expect(
+      authorizationBinds({
+        ...base,
+        auth: makeAuth({ importer: '0x2222222222222222222222222222222222222222' }),
+      }),
+    ).toEqual({
       decision: 'denied',
       reasonCode: 'LOCAL_STATE_DENIED',
     });
-    expect(authorizationBinds({ ...base, auth: makeAuth({ token: '0x3333333333333333333333333333333333333333' }) })).toEqual({
+    expect(
+      authorizationBinds({
+        ...base,
+        auth: makeAuth({ token: '0x3333333333333333333333333333333333333333' }),
+      }),
+    ).toEqual({
       decision: 'denied',
       reasonCode: 'LOCAL_STATE_DENIED',
     });
@@ -270,7 +285,8 @@ describe('authorization binding', () => {
 describe('replay protection', () => {
   it('consumes a nonce once', () => {
     const auth = makeAuth();
-    const used = new Set([`${auth.escrow}:${auth.tradeId}:${auth.milestoneId}:${auth.nonce}`]);
+    const key = [auth.escrow, auth.tradeId, auth.milestoneId, auth.nonce].join(':');
+    const used = new Set([key]);
     expect(authReplay(auth, used)).toEqual({ decision: 'denied', reasonCode: 'AUTH_REPLAY' });
     expect(authReplay(auth, new Set())).toEqual({ decision: 'allowed', reasonCode: null });
   });
@@ -290,7 +306,13 @@ describe('invariants', () => {
 
   it('milestone sequence holds', () => {
     const trade = makeFundedTrade();
-    const withM2 = { ...trade, milestones: [{ ...trade.milestones[0]! }, { ...trade.milestones[1]!, status: 'RELEASED' as const }] };
+    const withM2 = {
+      ...trade,
+      milestones: [
+        { ...trade.milestones[0]! },
+        { ...trade.milestones[1]!, status: 'RELEASED' as const },
+      ],
+    };
     expect(invariantSequence(withM2)).toBe(false);
   });
 
