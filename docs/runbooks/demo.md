@@ -1,9 +1,28 @@
 # BridgeSure Demo Runbook
 
-## Before the Demo
+There are two ways to run the demo: the **local console** (default, fully mocked, no network or
+credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
+
+## Local Console (mocked, recommended first)
+
+1. Copy `.env.example` to an ignored `.env` and generate a demo-only
+   `BRIDGESURE_RELEASE_SIGNER_PRIVATE_KEY` (`cast wallet new` or `openssl rand -hex 32`
+   prefixed with `0x`). Keep `BRIDGESURE_CLEANVERSE_MODE=demo` (the default).
+2. Run `pnpm dev` from the repo root: the API boots on :4000 with a scripted sandbox mock and
+   the web app on :3000.
+3. Open http://localhost:3000 — the landing page explains the product; "Open console" starts
+   the demo.
+4. In the console: **Fund escrow**, then **Release milestone one** (fresh checks pass, bounded
+   authorization signed), then **Freeze exporter credential** (confirm), then **Release
+   milestone two** — it fails closed with `APASS_NOT_VALID`, the milestone card and audit feed
+   show the reason, and the balances are unchanged. **Export** downloads the audit packet.
+
+## Live Demo (Monad Testnet + Cleanverse sandbox)
+
+### Before the Demo
 
 1. Copy .env.example to an ignored .env and fill API credentials, RPC URL, and deployment signer
-   configuration. Never commit the file.
+   configuration. Never commit the file. Set `BRIDGESURE_CLEANVERSE_MODE=live`.
 2. Verify the validator address has bytecode and expected read methods on Monad.
 3. Query supported Monad A-Tokens. If none is suitable, obtain confirmation before issuing a
    dedicated demo CVA with /atoken/launch.

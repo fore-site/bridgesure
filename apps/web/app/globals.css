@@ -1,0 +1,273 @@
+@import 'tailwindcss';
+
+/*
+ * BridgeSure design tokens.
+ * One palette: navy-ink neutrals tuned to the BridgeSure brand gradient
+ * (#081A33 to #123B67) with a single electric-cyan accent (#42D9FF) and
+ * semantic status colors. Cleanverse marks are monochrome and sit on the
+ * ink neutrals unchanged.
+ */
+@theme {
+  --color-ink-950: #060a11;
+  --color-ink-900: #0a111c;
+  --color-ink-850: #0d1623;
+  --color-ink-800: #122031;
+  --color-ink-700: #1a2b3f;
+  --color-ink-600: #27405c;
+
+  --color-bridge-200: #b3efff;
+  --color-bridge-300: #7de3ff;
+  --color-bridge-400: #42d9ff;
+  --color-bridge-500: #17b9e6;
+  --color-bridge-600: #0e8fbc;
+
+  --color-ok-300: #6ee7b7;
+  --color-ok-400: #34d399;
+  --color-ok-500: #10b981;
+
+  --color-warn-300: #fde68a;
+  --color-warn-400: #fbbf24;
+  --color-warn-500: #f59e0b;
+
+  --color-danger-300: #fda4af;
+  --color-danger-400: #fb7185;
+  --color-danger-500: #f43f5e;
+
+  --color-mist-300: #c3d0e0;
+  --color-mist-400: #94a6bd;
+  --color-mist-500: #6b7f99;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+
+  --radius-panel: 12px;
+
+  --ease-smooth: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-950 font-sans text-mist-300 antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-bridge-400) 30%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-bridge-400) 70%, white);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-700);
+    border-radius: 8px;
+    border: 2px solid var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-600);
+  }
+}
+
+@layer components {
+  /* Raised panel: the only card treatment in the system. */
+  .panel {
+    @apply rounded-[12px] border border-white/[0.07] bg-ink-850;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 12px 32px -16px rgb(2 8 18 / 0.9);
+  }
+
+  .hairline {
+    @apply border-white/[0.07];
+  }
+
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-mist-500;
+  }
+
+  .mono {
+    @apply font-mono;
+  }
+
+  /* Sticky chrome used by nav + console header. */
+  .glass {
+    @apply border-b border-white/[0.06] bg-ink-950/75 backdrop-blur-xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-bridge-400 px-4 py-2.5 text-sm font-semibold text-ink-950 transition
+      hover:bg-bridge-300 active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-mist-300 transition
+      hover:border-white/20 hover:text-white active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist-400 transition
+      hover:bg-white/[0.04] hover:text-white active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .field {
+    @apply w-full rounded-lg border border-white/10 bg-ink-900 px-3.5 py-2.5 text-sm text-white placeholder:text-mist-500
+      focus:border-bridge-400/60 focus:outline-none focus:ring-2 focus:ring-bridge-400/20;
+  }
+
+  /* Word-level gradient for a single accent phrase. */
+  .text-gradient {
+    background: linear-gradient(
+      92deg,
+      var(--color-bridge-200) 0%,
+      var(--color-bridge-400) 48%,
+      #6ea8ff 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Faint engineering grid, masked to fade out. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 75%);
+  }
+
+  /* Top-center brand glow behind the hero. */
+  .hero-glow {
+    background: radial-gradient(
+      62% 46% at 50% 0%,
+      rgb(23 185 230 / 0.13),
+      transparent 72%
+    );
+  }
+
+  /* Mono "hash line" used in decision logs and evidence blocks. */
+  .logline {
+    @apply flex items-baseline gap-2 font-mono text-[12.5px] leading-6;
+  }
+
+  .tone-ok {
+    color: var(--color-ok-400);
+  }
+  .tone-danger {
+    color: var(--color-danger-400);
+  }
+  .tone-warn {
+    color: var(--color-warn-400);
+  }
+  .tone-bridge {
+    color: var(--color-bridge-400);
+  }
+}
+
+/* Scroll-reveal (JS adds .is-visible via IntersectionObserver). */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.7s var(--ease-smooth),
+    transform 0.7s var(--ease-smooth);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Soft status pulse for "live" indicators. */
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+/* Toast + dialog entrance. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 0.35s var(--ease-smooth) both;
+}
+
+/* Button-busy spinner (adapts to any button color via currentColor). */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  border: 2px solid color-mix(in oklab, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Skeleton shimmer for loading panels. */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  @apply rounded-md bg-ink-800;
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.045) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

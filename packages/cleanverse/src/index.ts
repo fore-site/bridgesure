@@ -20,6 +20,7 @@ export {
   type QueryTxsData,
   type TravelRuleData,
   type UpdateStatusData,
+  type UpdateStatusRequest,
   type GenerateApassData,
   type CompatRule,
 } from './schemas.js';

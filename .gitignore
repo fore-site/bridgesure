@@ -26,3 +26,7 @@ docs/planning/five-day-plan.md
 .commandcode/
 .freebuff/
 AGENTS.md
+media_kit/.playwright-mcp/
+.playwright-mcp/
+media_kit/
+.DS_Store

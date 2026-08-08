@@ -3,10 +3,16 @@
 ## Project status
 
 - **MVP implemented (2026-08-08).** The typed Cleanverse transport, the escrow state
-  machine, the `BridgeSureEscrow` contract, and the release-orchestration API are complete,
-  with passing suites (`pnpm check`, `forge test` 20/20).
+  machine, the `BridgeSureEscrow` contract, the release-orchestration API, and the web
+  console (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 20/20).
+- **Web console shipped.** A product landing page and a compliance console at `apps/web`:
+  trade overview, milestone track with balances, action panel (fund, release, freeze, hold),
+  authorization evidence, and an exportable audit trail. The browser talks only to the API;
+  Cleanverse calls stay server-side.
 - **Demo flow green with mocks:** fund, release milestone one, block milestone two after
-  participant invalidation (balances unchanged), and export the audit packet.
+  participant invalidation (balances unchanged), and export the audit packet. The API runs in
+  `BRIDGESURE_CLEANVERSE_MODE=demo` (default) with a scripted sandbox mock — no network or
+  credentials needed for `pnpm dev`.
 - **Remaining:** live Monad Testnet provisioning — escrow deployment, validator-pool
   registration, A-Pass records, and funding (see the
   [deployment checklist](planning/deployment-checklist.md)).

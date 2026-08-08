@@ -95,7 +95,7 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 ## Commit expectations
 
 - feat(api): complete trade and audit endpoints
-- feat(web): build BridgeSure compliance console
+- feat(web): build BridgeSure compliance console — DONE (landing page + console in `apps/web`)
 - test(e2e): cover successful and fail-closed milestones
 - feat(integration): add opt-in Cleanverse provisioning and smoke scripts
 - docs: add deployment and reproducible demo instructions

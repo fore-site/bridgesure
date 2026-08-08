@@ -1,9 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 import { z } from 'zod';
 import { isHex, keccak256, toHex, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { createTrade, enterHold, markFunded, normalizeAddress } from '@bridgesure/domain';
+import {
+  createTrade,
+  enterHold,
+  markFunded,
+  normalizeAddress,
+  type Trade,
+} from '@bridgesure/domain';
 import type { CleanverseApi } from '@bridgesure/cleanverse';
 import { loadConfig } from './config.js';
 import { Store } from './store.js';
@@ -73,6 +80,9 @@ export function buildServer(deps: {
   });
 
   const app = Fastify({ logger: false });
+  // The web console is a browser client (apps/web); allow it to call the API
+  // directly per the browser-to-API trust boundary.
+  void app.register(cors, { origin: config.BRIDGESURE_WEB_ORIGIN });
 
   app.addHook('onRequest', (request, reply, done) => {
     // Demo authorization: operators authenticate with a role header.
@@ -87,28 +97,15 @@ export function buildServer(deps: {
 
   app.get('/health', () => ({ ok: true }));
 
-  app.get<{ Params: { id: string } }>('/trades/:id', async (request, reply) => {
+  app.get<{ Params: { id: string } }>('/trades/:id', (request, reply) => {
     const { id } = request.params;
     if (id !== store.trade.id) return reply.code(404).send({ error: 'trade not found' });
-    return {
-      trade: {
-        id: store.trade.id,
-        chainId: store.trade.chainId.toString(),
-        escrow: store.trade.escrow,
-        importer: store.trade.importer,
-        exporter: store.trade.exporter,
-        token: store.trade.token,
-        totalAmount: store.trade.totalAmount.toString(),
-        status: store.trade.status,
-        milestones: store.trade.milestones.map((m) => ({
-          id: m.id,
-          amount: m.amount.toString(),
-          status: m.status,
-          evidenceHash: m.evidenceHash,
-        })),
-      },
-    };
+    return { trade: toTradeView(store.trade) };
   });
+
+  // Discovery: the single demo trade, so clients never need to derive its
+  // bytes32 id from configuration.
+  app.get('/trades', () => ({ trades: [toTradeView(store.trade)] }));
 
   app.post<{ Params: { id: string }; Body: { amount?: string } }>(
     '/trades/:id/fund-intent',
@@ -206,6 +203,38 @@ export function buildServer(deps: {
     },
   );
 
+  app.post<{ Params: { id: string } }>('/trades/:id/freeze-exporter', async (request, reply) => {
+    const { id } = request.params;
+    if (id !== store.trade.id) return reply.code(404).send({ error: 'trade not found' });
+    // Demo mutation (sandbox write): freeze the exporter's A-Pass credential so
+    // the next release attempt fails closed. This routes through the server-side
+    // Cleanverse boundary (/update_status) and is recorded in the audit trail.
+    let txHash: string;
+    try {
+      const result = await deps.cleanverse.updateStatus({
+        status: '2',
+        blacklistReason: 'demo: exporter credential frozen',
+        wallet: { chain: config.BRIDGESURE_CHAIN, address: store.trade.exporter },
+      });
+      txHash = result.txHash;
+    } catch {
+      return reply.code(502).send({ error: 'freeze failed', reasonCode: 'CLEANVERSE_UNAVAILABLE' });
+    }
+    store.appendAudit(
+      makeAuditRecord({
+        traceId: request.traceId,
+        actorRole: String(request.headers['x-operator-role'] ?? 'unknown'),
+        operation: 'freeze',
+        decision: 'allowed',
+        tradeId: store.trade.id,
+        token: store.trade.token,
+        amount: 0n,
+        txHash,
+      }),
+    );
+    return { frozen: true, txHash, status: store.trade.status };
+  });
+
   app.get<{ Params: { id: string } }>('/trades/:id/audit', async (request, reply) => {
     const { id } = request.params;
     if (id !== store.trade.id) return reply.code(404).send({ error: 'trade not found' });
@@ -216,6 +245,42 @@ export function buildServer(deps: {
   });
 
   return app;
+}
+
+interface TradeView {
+  id: string;
+  chainId: string;
+  escrow: string;
+  importer: string;
+  exporter: string;
+  token: string;
+  totalAmount: string;
+  status: Trade['status'];
+  milestones: {
+    id: 1 | 2;
+    amount: string;
+    status: Trade['milestones'][number]['status'];
+    evidenceHash: string | null;
+  }[];
+}
+
+function toTradeView(trade: Trade): TradeView {
+  return {
+    id: trade.id,
+    chainId: trade.chainId.toString(),
+    escrow: trade.escrow,
+    importer: trade.importer,
+    exporter: trade.exporter,
+    token: trade.token,
+    totalAmount: trade.totalAmount.toString(),
+    status: trade.status,
+    milestones: trade.milestones.map((m) => ({
+      id: m.id,
+      amount: m.amount.toString(),
+      status: m.status,
+      evidenceHash: m.evidenceHash,
+    })),
+  };
 }
 
 function signerPrivateKey(value: string): Hex {
