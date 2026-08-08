@@ -28,6 +28,3 @@ docs/runbooks/           operational and demo procedures
 docs/business/           business-plan collateral
 docs/reference/          local source material; ignored unless redistribution is approved
 ```
-
-Do not commit credentials, private keys, seed phrases, identity/bank data, or time-limited report
-URLs.
