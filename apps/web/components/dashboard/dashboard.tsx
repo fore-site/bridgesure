@@ -6,11 +6,13 @@ import {
   ArrowRightIcon,
   BellIcon,
   ChartLineIcon,
+  PlugIcon,
   ScalesIcon,
   ShieldWarningIcon,
   WalletIcon,
 } from '@phosphor-icons/react';
 import { useConnection, useReadContract } from 'wagmi';
+import { useWalletModal } from '@/components/wallet/wallet-modal-provider';
 import { api, ApiError } from '@/lib/api';
 import { erc20Abi, monadTestnet, requireAddress } from '@/lib/wagmi';
 import { ASSET, CHAIN } from '@/lib/constants';
@@ -26,6 +28,7 @@ import { Chip, HashText } from '@/components/ui';
  * party's perspective is shown.
  */
 export function Dashboard() {
+  const { open } = useWalletModal();
   const { address, isConnected, chainId } = useConnection();
   const [trades, setTrades] = useState<TradeView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +71,11 @@ export function Dashboard() {
     void load();
   }, [load]);
 
+  // Strictly wallet-scoped: the dashboard shows only the escrows the connected
+  // address is a party to (importer or exporter). A different wallet sees none
+  // of this registry's trades — no fallback to the full list.
   const myTrades = useMemo(() => {
-    if (!address) return trades ?? [];
+    if (!address) return [];
     const me = address.toLowerCase();
     return (trades ?? []).filter(
       (t) => t.importer.toLowerCase() === me || t.exporter.toLowerCase() === me,
@@ -78,15 +84,15 @@ export function Dashboard() {
 
   const tvl = useMemo(
     () =>
-      (trades ?? [])
+      myTrades
         .filter((t) => t.status !== 'COMPLETE' && t.status !== 'REFUNDED')
         .reduce((acc, t) => acc + BigInt(t.totalAmount), 0n),
-    [trades],
+    [myTrades],
   );
 
   const alerts = useMemo(() => {
     const out: { tone: 'danger' | 'warn' | 'info'; text: string; tradeId: string }[] = [];
-    for (const t of trades ?? []) {
+    for (const t of myTrades) {
       if (t.status === 'HOLD') {
         out.push({ tone: 'warn', text: `Trade on hold — ${shortAddress(t.id)}`, tradeId: t.id });
       }
@@ -106,7 +112,7 @@ export function Dashboard() {
 
   const deadlines = useMemo(() => {
     const out: { tradeId: string; milestone: string; status: TradeStatus }[] = [];
-    for (const t of trades ?? []) {
+    for (const t of myTrades) {
       for (const m of t.milestones) {
         if (m.status === 'PENDING') {
           out.push({ tradeId: t.id, milestone: `Milestone ${String(m.id)}`, status: t.status });
@@ -114,7 +120,7 @@ export function Dashboard() {
       }
     }
     return out;
-  }, [trades]);
+  }, [myTrades]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -149,8 +155,8 @@ export function Dashboard() {
         <Stat
           icon={<ScalesIcon size={17} weight="duotone" className="text-bridge-400" />}
           label="Total value locked"
-          value={`${formatAmount(tvl.toString())} aUSDC`}
-          hint={`across ${String((trades ?? []).length)} escrow(s)`}
+          value={isConnected ? `${formatAmount(tvl.toString())} aUSDC` : '—'}
+          hint={isConnected ? `across ${String(myTrades.length)} escrow(s)` : 'connect a wallet'}
         />
         <Stat
           icon={<ChartLineIcon size={17} weight="duotone" className="text-bridge-400" />}
@@ -158,7 +164,7 @@ export function Dashboard() {
           value={String(
             myTrades.filter((t) => t.status !== 'COMPLETE' && t.status !== 'REFUNDED').length,
           )}
-          hint={isConnected ? 'parties you transact with' : 'all registered trades'}
+          hint={isConnected ? 'parties you transact with' : 'connect a wallet'}
         />
       </div>
 
@@ -174,13 +180,29 @@ export function Dashboard() {
               </Link>
             </div>
             <div className="mt-4 space-y-3">
-              {(myTrades.length > 0 ? myTrades : (trades ?? [])).map((t) => (
-                <TradeRow key={t.id} trade={t} />
-              ))}
-              {(myTrades.length === 0 || (trades ?? []).length === 0) && (
-                <div className="rounded-xl border border-dashed border-white/[0.08] px-6 py-10 text-center text-[13.5px] text-mist-500">
-                  No escrows yet — the registry seeds demo trades when the API boots.
+              {!isConnected ? (
+                <div className="rounded-xl border border-dashed border-white/[0.08] px-6 py-10 text-center">
+                  <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-bridge-500/15 text-bridge-400">
+                    <WalletIcon size={18} weight="duotone" />
+                  </span>
+                  <p className="mt-3 text-[13.5px] text-mist-400">
+                    Connect a wallet to see the escrows you&apos;re a party to.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary mt-4 px-4 py-2 text-[13px]"
+                    onClick={open}
+                  >
+                    <PlugIcon size={14} weight="bold" />
+                    Connect wallet
+                  </button>
                 </div>
+              ) : myTrades.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/[0.08] px-6 py-10 text-center text-[13.5px] text-mist-500">
+                  You&apos;re not a party to any escrows on this registry yet.
+                </div>
+              ) : (
+                myTrades.map((t) => <TradeRow key={t.id} trade={t} />)
               )}
             </div>
           </section>
@@ -189,7 +211,11 @@ export function Dashboard() {
             <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-white">
               Milestone deadlines
             </h2>
-            {deadlines.length === 0 ? (
+            {!isConnected ? (
+              <p className="mt-4 text-[13px] text-mist-500">
+                Connect a wallet to see your pending milestone deadlines.
+              </p>
+            ) : deadlines.length === 0 ? (
               <p className="mt-4 text-[13px] text-mist-500">No pending milestones.</p>
             ) : (
               <ol className="mt-4 space-y-3">
@@ -224,7 +250,9 @@ export function Dashboard() {
             </div>
             {alerts.length === 0 ? (
               <p className="mt-4 text-[12.5px] leading-relaxed text-mist-500">
-                No active alerts — every escrow is tracking normally.
+                {isConnected
+                  ? 'No active alerts — your escrows are tracking normally.'
+                  : 'Connect a wallet to see contract alerts for your escrows.'}
               </p>
             ) : (
               <div className="mt-4 space-y-2.5">
