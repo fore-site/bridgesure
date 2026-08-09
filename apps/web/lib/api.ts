@@ -146,25 +146,36 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
-  // -- disputes (resolution center) --
+  // -- disputes (resolution center; writes are party-gated by wallet proof) --
   createDispute: (
     tradeId: string,
     reason: string,
     requiredSignatures = 2,
+    token?: string,
   ): Promise<DisputeResult> =>
-    request(`/trades/${tradeId}/disputes`, disputeResultSchema, {
-      method: 'POST',
-      body: JSON.stringify({ reason, requiredSignatures }),
-    }),
+    request(
+      `/trades/${tradeId}/disputes`,
+      disputeResultSchema,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason, requiredSignatures }),
+      },
+      token,
+    ),
   listDisputesForTrade: (tradeId: string): Promise<{ disputes: DisputeView[] }> =>
     request(`/trades/${tradeId}/disputes`, disputesResponseSchema),
   listAllDisputes: (): Promise<{ disputes: DisputeView[] }> =>
     request('/disputes', disputesResponseSchema),
-  addEvidence: (disputeId: string, input: EvidenceInput): Promise<DisputeResult> =>
-    request(`/disputes/${disputeId}/evidence`, disputeResultSchema, {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+  addEvidence: (disputeId: string, input: EvidenceInput, token?: string): Promise<DisputeResult> =>
+    request(
+      `/disputes/${disputeId}/evidence`,
+      disputeResultSchema,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
   signDispute: (disputeId: string, signer: string): Promise<DisputeResult> =>
     request(`/disputes/${disputeId}/sign`, disputeResultSchema, {
       method: 'POST',
@@ -186,8 +197,7 @@ export const api = {
 };
 
 /**
- * Fetch the single live demo trade (the configured escrow-backed one). The
- * registry may contain synthetic demo trades; prefer the live one by escrow.
+ * Fetch the single configured live trade (the escrow-backed one).
  */
 export async function fetchTrade(): Promise<TradeView> {
   const { trades } = await api.getTrades();

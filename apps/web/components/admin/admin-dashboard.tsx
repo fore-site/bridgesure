@@ -25,8 +25,10 @@ import { AuditFeed } from '@/components/console/audit-feed';
 
 /**
  * Operator dashboard (ui.md /admin): system-level overview (TVL, dispute
- * backlog, health, gas budget) plus the live operator flow — fund, authorize
+ * backlog, health, gas budget) plus the live operator flow — authorize
  * milestone releases, freeze credentials — for any trade on the registry.
+ * Escrow funding is automatic (server job); the manual fund-intent endpoint
+ * remains as a fallback for edge cases.
  */
 export function AdminDashboard() {
   const { push } = useToasts();
@@ -111,18 +113,6 @@ export function AdminDashboard() {
 
   const actions = useMemo(
     () => ({
-      fund: () => {
-        void run('fund', async () => {
-          if (!trade) return;
-          const res = await api.fund(trade.id, trade.totalAmount);
-          push(
-            'success',
-            'Escrow funded',
-            `${formatAmount(res.amount)} aUSDC held by the contract`,
-          );
-          await Promise.all([loadTrade(), load()]);
-        });
-      },
       release: (milestoneId: 1 | 2) => {
         void run(`release-${String(milestoneId)}`, async () => {
           if (!trade) return;

@@ -11,16 +11,19 @@
   Resolution Center for disputes with evidence and multi-sig review. Administrative functions
   live in an isolated operator portal (`/admin`) with its own layout, system overview, and
   dispute queue. The browser talks only to the API; Cleanverse calls stay server-side.
-- **Demo flow green with mocks:** fund, release milestone one, block milestone two after
-  participant invalidation (balances unchanged), and export the audit packet. The API runs in
+- **Full lifecycle green.** Escrow funding and milestone releases run automatically (server
+  jobs with fresh per-milestone A-Pass + validator checks), releases fail closed after
+  participant invalidation (balances unchanged), disputes are party-scoped with evidence and
+  multi-sig review, and the audit packet exports as Travel Rule evidence. Local runs use
   `BRIDGESURE_CLEANVERSE_MODE=demo` (default) with a scripted sandbox mock — no network or
   credentials needed for `pnpm dev`.
-- **Live provisioning advanced (2026-08-08).** The escrow is deployed and registered as its
-  own compliance pool, both demo A-Pass records are generated, and the importer holds 40 aUSDC
-  (both milestones covered).
-  Remaining: fund the escrow on-chain, release milestone one, freeze the exporter and block
-  milestone two, then export the Travel Rule evidence (see the
-  [deployment checklist](planning/deployment-checklist.md)).
+- **Live on Monad Testnet (2026-08-08).** The escrow is deployed and registered as its own
+  compliance pool, both participant A-Pass records are provisioned, and the importer holds
+  40 aUSDC (both milestones covered). The registry holds only the configured escrow-bound
+  trade — no seeded fixtures. Milestone one is released on-chain; milestone two is blocked
+  until the exporter credential is restored (see the
+  [deployment checklist](planning/deployment-checklist.md) and
+  [demo runbook](runbooks/demo.md)).
 
 Read these documents in order:
 

@@ -16,8 +16,8 @@ import { Chip, HashText } from '@/components/ui';
 /**
  * Multi-Sig Resolution Builder (ui.md Resolution Center): an admin-side tool
  * for a dispute. Shows the required-signature threshold, the signatories that
- * have approved, and lets the operator add signatory addresses (the demo acts
- * on behalf of the multi-sig panel). Resolution unlocks once the threshold is
+ * have approved, and lets the operator add signatory addresses (the operator
+ * acts on behalf of the multi-sig panel). Resolution unlocks once the threshold is
  * reached — mirroring the registry's requiredSignatures state machine.
  */
 export function MultiSigBuilder({

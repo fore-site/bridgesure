@@ -28,7 +28,7 @@ import type { TradeView } from '@/lib/types';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /**
- * Importer seat of the demo. Connects the browser wallet holding aUSDC,
+ * Importer seat. Connects the browser wallet holding aUSDC,
  * approves the escrow, and funds the trade on-chain — the escrow contract
  * only accepts the configured importer address (WrongParty otherwise).
  * The on-chain state is mirrored to the API with the existing fund-intent
@@ -107,7 +107,7 @@ export function ImporterPanel({
       push(
         'error',
         'On-chain funding confirmed, state mirror failed',
-        `${errMessage(err)} — use Operator → Fund escrow to sync the API state.`,
+        `${errMessage(err)} — the automatic funder reconciles the registry state on its next pass.`,
       );
     });
   }, [fundHash, fundConfirmed, push, onFundMirrored, amount]);
@@ -232,8 +232,8 @@ export function ImporterPanel({
           </button>
           <p className="text-[11.5px] leading-relaxed text-mist-500">
             {hasInjected
-              ? 'Connect the demo importer wallet — the address that holds aUSDC on Monad Testnet.'
-              : 'No injected wallet found. Install MetaMask, add Monad Testnet (chain 10143), and import the importer demo key.'}
+              ? 'Connect the importer wallet — the address that holds aUSDC on Monad Testnet.'
+              : 'No injected wallet found. Install MetaMask, add Monad Testnet (chain 10143), and import the importer key.'}
           </p>
         </div>
       ) : (

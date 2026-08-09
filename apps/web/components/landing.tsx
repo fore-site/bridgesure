@@ -536,7 +536,7 @@ function CtaBand() {
         <div className="panel relative overflow-hidden p-10 md:p-14">
           <div className="relative flex flex-col items-center gap-8 text-center">
             <Chip tone="info" dot>
-              Reproducible in minutes · mocks by default
+              Reproducible in minutes · live on Monad Testnet
             </Chip>
             <h2 className="max-w-2xl text-balance text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl md:leading-[1.06]">
               Watch a payment <span className="text-accent-soft">fail safely</span>.

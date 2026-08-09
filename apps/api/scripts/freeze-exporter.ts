@@ -8,8 +8,7 @@ import { flag, hasFlag, info, liveClient, loadLiveConfig, parseArgs, runMain } f
 await runMain(async () => {
   const args = parseArgs(process.argv.slice(2));
   const config = loadLiveConfig();
-  const reason =
-    flag(args, 'reason') ?? 'demo: exporter credential frozen for the fail-closed milestone';
+  const reason = flag(args, 'reason') ?? 'exporter credential frozen for the fail-closed milestone';
 
   const plan = {
     action: 'update_status (freeze exporter A-Pass)',

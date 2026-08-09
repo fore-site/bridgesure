@@ -20,6 +20,7 @@ import { ReleaseOrchestrator, type ReleaseOutcome } from './orchestrator.js';
 import { makeAuditRecord } from './audit.js';
 import { createWalletAuth } from './wallet-auth.js';
 import { createAutoReleaseScheduler } from './auto-release.js';
+import { createAutoFundScheduler } from './auto-fund.js';
 
 const releaseBodySchema = z.object({
   milestoneId: z.union([z.literal(1), z.literal(2)]),
@@ -137,6 +138,16 @@ export function buildServer(deps: {
     intervalMs: config.BRIDGESURE_AUTO_RELEASE_INTERVAL_MS,
   });
 
+  // Automatic escrow funding: DRAFT trades are funded by this job (on-chain
+  // from the importer key in live mode, registry mirror in demo mode) without
+  // an operator click. The manual fund-intent endpoint stays as a fallback.
+  const autoFund = createAutoFundScheduler({
+    registry,
+    intervalMs: config.BRIDGESURE_AUTO_FUND_INTERVAL_MS,
+    config,
+    configuredTradeId: tradeId,
+  });
+
   /** Seed the configured (live) trade; optionally add synthetic demo trades. */
   async function seedRegistry(): Promise<void> {
     const configured = createTrade({
@@ -222,10 +233,12 @@ export function buildServer(deps: {
   app.addHook('onReady', async () => {
     await registry.init();
     await seedRegistry();
+    if (config.BRIDGESURE_AUTO_FUND_ENABLED) autoFund.start();
     if (config.BRIDGESURE_AUTO_RELEASE_ENABLED) autoRelease.start();
   });
 
   app.addHook('onClose', async () => {
+    autoFund.stop();
     autoRelease.stop();
     await registry.close();
   });
@@ -280,6 +293,11 @@ export function buildServer(deps: {
       const parsed = fundBodySchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: 'invalid amount' });
       const amount = BigInt(parsed.data.amount);
+      // Idempotent fallback: the automatic funder usually gets here first, so
+      // an already-funded trade is a no-op — no duplicate audit record.
+      if (trade.status !== 'DRAFT') {
+        return { funded: true, amount: amount.toString(), status: trade.status };
+      }
       await registry.saveTrade(markFunded(trade));
       await registry.appendAudit(
         makeAuditRecord({
@@ -420,14 +438,14 @@ export function buildServer(deps: {
     const { id } = request.params;
     const trade = await registry.getTrade(id);
     if (!trade) return reply.code(404).send({ error: 'trade not found' });
-    // Demo mutation (sandbox write): freeze the exporter's A-Pass credential so
+    // Simulation (sandbox write): freeze the exporter's A-Pass credential so
     // the next release attempt fails closed. This routes through the server-side
     // Cleanverse boundary (/update_status) and is recorded in the audit trail.
     let txHash: string;
     try {
       const result = await deps.cleanverse.updateStatus({
         status: '2',
-        blacklistReason: 'demo: exporter credential frozen',
+        blacklistReason: 'exporter credential frozen — compliance review',
         wallet: { chain: config.BRIDGESURE_CHAIN, address: trade.exporter },
       });
       txHash = result.txHash;
@@ -559,18 +577,30 @@ export function buildServer(deps: {
   // Disputes — Resolution Center (parties flag + evidence) and admin queue
   // -------------------------------------------------------------------------
 
+  /**
+   * Party-gated: only the trade's importer or exporter may flag a dispute,
+   * proven by the wallet-proof bearer token issued at /auth/verify (the same
+   * gate as the release authorization). The flag is attributed to the verified
+   * wallet address, not a role header.
+   */
   app.post<{ Params: { id: string }; Body: z.infer<typeof createDisputeBodySchema> }>(
     '/trades/:id/disputes',
     async (request, reply) => {
       const { id } = request.params;
       const trade = await registry.getTrade(id);
       if (!trade) return reply.code(404).send({ error: 'trade not found' });
+      const party = walletAuth.partyFor(bearerToken(request.headers.authorization), id);
+      if (!party) {
+        return reply.code(401).send({
+          error: 'party proof required — connect your wallet and verify as a party to this trade',
+        });
+      }
       const parsed = createDisputeBodySchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: 'invalid dispute payload' });
       const dispute = await registry.createDispute({
         disputeId: randomUUID(),
         tradeId: id,
-        flaggedBy: String(request.headers['x-operator-role'] ?? 'party'),
+        flaggedBy: party,
         reason: parsed.data.reason,
         requiredSignatures: parsed.data.requiredSignatures,
       });
@@ -589,17 +619,33 @@ export function buildServer(deps: {
     return { disputes: await registry.listDisputes() };
   });
 
+  /**
+   * Party-gated like dispute filing: evidence on a dispute may only be
+   * anchored by a party to the dispute's trade (wallet proof). The submitter
+   * is recorded as the verified wallet address.
+   */
   app.post<{ Params: { disputeId: string }; Body: z.infer<typeof evidenceBodySchema> }>(
     '/disputes/:disputeId/evidence',
     async (request, reply) => {
       const { disputeId } = request.params;
       const dispute = await registry.getDispute(disputeId);
       if (!dispute) return reply.code(404).send({ error: 'dispute not found' });
+      const trade = await registry.getTrade(dispute.tradeId);
+      if (!trade) return reply.code(404).send({ error: 'trade not found' });
+      const party = walletAuth.partyFor(
+        bearerToken(request.headers.authorization),
+        dispute.tradeId,
+      );
+      if (!party) {
+        return reply.code(401).send({
+          error: 'party proof required — connect your wallet and verify as a party to this trade',
+        });
+      }
       const parsed = evidenceBodySchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: 'invalid evidence payload' });
       const updated = await registry.addEvidence(disputeId, {
         evidenceId: randomUUID(),
-        submittedBy: String(request.headers['x-operator-role'] ?? 'party'),
+        submittedBy: party,
         kind: parsed.data.kind,
         label: parsed.data.label,
         digest: parsed.data.digest,

@@ -97,7 +97,7 @@ export function AuditFeed({ trade, records }: { trade: TradeView; records: Audit
         <div className="mt-6 rounded-xl border border-dashed border-white/[0.08] px-6 py-10 text-center">
           <p className="text-[13.5px] text-mist-500">
             {records.length === 0
-              ? 'No operations yet — fund the trade to start the trail.'
+              ? 'No operations yet — automatic funding and releases land here as the trade progresses.'
               : 'Nothing matches this filter.'}
           </p>
         </div>

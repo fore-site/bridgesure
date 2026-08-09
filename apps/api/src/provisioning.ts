@@ -69,7 +69,7 @@ export async function ownerSignature(
 // A-Pass generation (sandbox write)
 // ---------------------------------------------------------------------------
 
-/** Synthetic, clearly-fake identity for demo A-Pass records (never real PII). */
+/** Synthetic test identity for A-Pass records (never real PII). */
 export function syntheticIdentity(party: 'importer' | 'exporter'): {
   idType: string;
   fullName: string;
@@ -79,14 +79,14 @@ export function syntheticIdentity(party: 'importer' | 'exporter'): {
   return party === 'importer'
     ? {
         idType: 'PASSPORT',
-        fullName: 'BridgeSure Demo Importer',
-        idNumber: 'DEMO-IMP-000001',
+        fullName: 'BridgeSure Importer — test participant',
+        idNumber: 'IMP-000001',
         issuingCountryISO2: 'US',
       }
     : {
         idType: 'PASSPORT',
-        fullName: 'BridgeSure Demo Exporter',
-        idNumber: 'DEMO-EXP-000001',
+        fullName: 'BridgeSure Exporter — test participant',
+        idNumber: 'EXP-000001',
         issuingCountryISO2: 'US',
       };
 }
@@ -99,11 +99,11 @@ export interface ApassGenerationInput {
 }
 
 /**
- * Create (or override-update) the A-Pass record for one demo participant.
+ * Create (or override-update) the A-Pass record for one participant.
  * A `1000` business code means an existing record requires `override: true`;
  * the retry happens here so scripts never see the intermediate failure.
  */
-/** Far-future Unix-seconds expiry for demo A-Pass records (2030-03-18). */
+/** Far-future Unix-seconds expiry for A-Pass records (2030-03-18). */
 export const APASS_EXPIRATION_UNIX = 1_900_000_000;
 
 export async function generateApass(
@@ -198,7 +198,7 @@ export interface PoolPausedInput {
   paused: boolean;
 }
 
-/** Pause/unpause the pool (support path; not part of the demo flow). */
+/** Pause/unpause the pool (support path). */
 export async function setPoolPaused(
   client: CleanverseApi,
   input: PoolPausedInput,

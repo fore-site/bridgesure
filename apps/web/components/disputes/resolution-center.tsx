@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -12,7 +12,7 @@ import {
   PaperclipIcon,
   ShieldWarningIcon,
 } from '@phosphor-icons/react';
-import { useConnection } from 'wagmi';
+import { useConnection, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/lib/api';
 import type { DisputeView, EvidenceInput, TradeView } from '@/lib/types';
 import { formatDateUtc, shortAddress } from '@/lib/format';
@@ -37,6 +37,7 @@ export function ResolutionCenter() {
   const router = useRouter();
   const params = useSearchParams();
   const { address, isConnected } = useConnection();
+  const { mutateAsync: signMessageAsync } = useSignMessage();
 
   const [trades, setTrades] = useState<TradeView[]>([]);
   const [disputes, setDisputes] = useState<DisputeView[]>([]);
@@ -60,19 +61,73 @@ export function ResolutionCenter() {
   const activeDisputeId = params.get('dispute');
   const tradeFilter = params.get('trade');
 
+  // Party wallet proof: a short-lived bearer token scoped to a trade, minted
+  // only for its importer or exporter (challenge → sign → verify). Cached per
+  // wallet + trade so flagging and evidence on the same trade don't re-prompt
+  // the wallet on every action; the API refuses dispute writes without it.
+  // Keying by wallet means switching seats (importer ↔ exporter) never reuses
+  // the previous wallet's token, and entries are dropped on a 401 so a token
+  // expired by TTL or an API restart is re-minted on the next attempt.
+  const partyTokens = useRef(new Map<string, string>());
+  const partyCacheKey = useCallback(
+    (tradeId: string) => `${address?.toLowerCase() ?? 'anon'}:${tradeId}`,
+    [address],
+  );
+  const dropPartyToken = useCallback(
+    (tradeId: string) => {
+      partyTokens.current.delete(partyCacheKey(tradeId));
+    },
+    [partyCacheKey],
+  );
+  const proveFor = useCallback(
+    async (tradeId: string): Promise<string> => {
+      const cacheKey = partyCacheKey(tradeId);
+      const cached = partyTokens.current.get(cacheKey);
+      if (cached) return cached;
+      const challenge = await api.getAuthChallenge(tradeId);
+      const signature = await signMessageAsync({ message: challenge.message });
+      const verified = await api.verifyAuth(tradeId, challenge.challengeId, signature);
+      partyTokens.current.set(cacheKey, verified.token);
+      return verified.token;
+    },
+    [partyCacheKey, signMessageAsync],
+  );
+
+  // Dispute writes are scoped to the trade's parties: the flag form only lists
+  // trades the connected wallet is a party to.
+  const me = address?.toLowerCase() ?? null;
+  const partyTrades = useMemo(
+    () =>
+      me
+        ? trades.filter((t) => t.importer.toLowerCase() === me || t.exporter.toLowerCase() === me)
+        : [],
+    [trades, me],
+  );
+
+  // Default the flag target to the first trade the wallet is a party to; a
+  // disconnected wallet clears the selection (nothing left to flag).
+  useEffect(() => {
+    if (!isConnected) {
+      setFlagTradeId('');
+      return;
+    }
+    if (flagTradeId && partyTrades.some((t) => t.id === flagTradeId)) return;
+    const first = partyTrades[0];
+    if (first) setFlagTradeId(first.id);
+  }, [flagTradeId, partyTrades, isConnected]);
+
   const load = useCallback(async () => {
     try {
       const [tradeRes, disputeRes] = await Promise.all([api.getTrades(), api.listAllDisputes()]);
       setTrades(tradeRes.trades);
       setDisputes(disputeRes.disputes);
-      if (!flagTradeId) setFlagTradeId(tradeRes.trades[0]?.id ?? '');
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'failed to load');
     } finally {
       setLoading(false);
     }
-  }, [flagTradeId]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -94,26 +149,57 @@ export function ResolutionCenter() {
   }, [disputes, tradeFilter]);
 
   const selectedDispute = disputes.find((d) => d.disputeId === activeDisputeId) ?? null;
+  const selectedTrade =
+    selectedDispute === null
+      ? null
+      : (trades.find((t) => t.id === selectedDispute.tradeId) ?? null);
+  // Evidence on a dispute may only be anchored by a party to its trade.
+  const canActOnDispute =
+    me !== null &&
+    selectedTrade !== null &&
+    (selectedTrade.importer.toLowerCase() === me || selectedTrade.exporter.toLowerCase() === me);
 
   const flag = useCallback(async () => {
     if (!reason.trim()) {
       push('error', 'Add a reason', 'Describe what is wrong before flagging.');
       return;
     }
+    if (!isConnected || !address) {
+      push('error', 'Connect a wallet', 'Only the importer or exporter of a trade can flag it.');
+      return;
+    }
+    if (!flagTradeId) {
+      push('error', 'Select a trade', 'Choose the trade you are a party to.');
+      return;
+    }
     setFlagBusy(true);
     try {
-      const res = await api.createDispute(flagTradeId, reason.trim(), threshold);
+      // Wallet proof first: the API mints a token only for the trade's parties.
+      const token = await proveFor(flagTradeId);
+      const res = await api.createDispute(flagTradeId, reason.trim(), threshold, token);
       push('success', 'Dispute flagged', `Trade ${shortAddress(flagTradeId)}`);
       setReason('');
       setThreshold(2);
       router.replace(`/disputes?dispute=${encodeURIComponent(res.dispute.disputeId)}`);
       await load();
     } catch (err) {
-      push('error', 'Flag failed', err instanceof ApiError ? err.message : 'request failed');
+      if (err instanceof ApiError && err.status === 401) dropPartyToken(flagTradeId);
+      push('error', 'Flag failed', actionError(err, 'Flag'));
     } finally {
       setFlagBusy(false);
     }
-  }, [flagTradeId, reason, threshold, load, push, router]);
+  }, [
+    flagTradeId,
+    reason,
+    threshold,
+    load,
+    push,
+    router,
+    isConnected,
+    address,
+    proveFor,
+    dropPartyToken,
+  ]);
 
   const submitEvidence = useCallback(async () => {
     if (!selectedDispute) return;
@@ -121,8 +207,13 @@ export function ResolutionCenter() {
       push('error', 'Hash a document first', 'Drop a file into the hasher to produce its digest.');
       return;
     }
+    if (!isConnected || !address) {
+      push('error', 'Connect a wallet', "Only a party to the dispute's trade can anchor evidence.");
+      return;
+    }
     setEvidenceBusy(true);
     try {
+      const token = await proveFor(selectedDispute.tradeId);
       const input: EvidenceInput = {
         kind,
         label: label.trim() || `Evidence ${String(selectedDispute.evidence.length + 1)}`,
@@ -130,7 +221,7 @@ export function ResolutionCenter() {
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(fileName ? { fileName } : {}),
       };
-      await api.addEvidence(selectedDispute.disputeId, input);
+      await api.addEvidence(selectedDispute.disputeId, input, token);
       push('success', 'Evidence anchored', 'Only the digest is stored — the file stays local.');
       setDigest('');
       setFileName('');
@@ -138,11 +229,25 @@ export function ResolutionCenter() {
       setNote('');
       await load();
     } catch (err) {
-      push('error', 'Submission failed', err instanceof ApiError ? err.message : 'request failed');
+      if (err instanceof ApiError && err.status === 401) dropPartyToken(selectedDispute.tradeId);
+      push('error', 'Submission failed', actionError(err, 'Submission'));
     } finally {
       setEvidenceBusy(false);
     }
-  }, [selectedDispute, digest, kind, label, note, fileName, load, push]);
+  }, [
+    selectedDispute,
+    digest,
+    kind,
+    label,
+    note,
+    fileName,
+    load,
+    push,
+    isConnected,
+    address,
+    proveFor,
+    dropPartyToken,
+  ]);
 
   if (loading) {
     return (
@@ -206,7 +311,12 @@ export function ResolutionCenter() {
                   }}
                   className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-ink-900/80 px-3 py-2.5 font-mono text-[12px] text-white focus:border-bridge-400/50 focus:outline-none"
                 >
-                  {trades.map((t) => (
+                  <option value="" disabled className="bg-ink-900">
+                    {isConnected
+                      ? 'Select a trade you are a party to…'
+                      : 'Connect a wallet to see your trades…'}
+                  </option>
+                  {partyTrades.map((t) => (
                     <option key={t.id} value={t.id} className="bg-ink-900">
                       {shortAddress(t.id)} · {t.status}
                     </option>
@@ -244,7 +354,7 @@ export function ResolutionCenter() {
               <button
                 type="button"
                 className="btn-primary w-full py-3"
-                disabled={flagBusy}
+                disabled={flagBusy || !isConnected || !flagTradeId}
                 onClick={() => {
                   void flag();
                 }}
@@ -253,14 +363,16 @@ export function ResolutionCenter() {
                 Flag dispute
               </button>
               <p className="text-[11.5px] leading-relaxed text-mist-500">
-                {isConnected
-                  ? 'Flagging is attributed to your connected wallet.'
-                  : 'Disputes are attributed to the party that flags them. Connect a wallet so your flag is recorded to you.'}
+                {!isConnected
+                  ? 'Only the importer or exporter of a trade can flag it. Connect your party wallet — your flag is recorded to your verified address.'
+                  : partyTrades.length === 0
+                    ? 'Your wallet is not a party to any trade on this registry, so there is nothing to flag.'
+                    : 'Your wallet signs a proof and the flag is recorded to your verified address.'}
               </p>
             </div>
           </section>
 
-          {selectedDispute && (
+          {selectedDispute && canActOnDispute && (
             <section className="panel p-5" aria-label="Anchor evidence">
               <div className="flex items-center gap-2">
                 <PaperclipIcon size={15} weight="duotone" className="text-bridge-400" />
@@ -325,6 +437,21 @@ export function ResolutionCenter() {
                   Anchor evidence
                 </button>
               </div>
+            </section>
+          )}
+
+          {selectedDispute && !canActOnDispute && (
+            <section className="panel p-5" aria-label="Anchor evidence">
+              <div className="flex items-center gap-2">
+                <PaperclipIcon size={15} weight="duotone" className="text-mist-400" />
+                <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-white">
+                  Anchor evidence
+                </h2>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-mist-500">
+                Only the importer or exporter of the dispute's trade can anchor evidence. Connect
+                that party wallet to contribute documents.
+              </p>
             </section>
           )}
         </aside>
@@ -451,6 +578,15 @@ function DisputeCard({
 
 function Spinner() {
   return <span className="spinner inline-block h-4 w-4 rounded-full" aria-hidden="true" />;
+}
+
+/** Friendly error for a party-gated action (wallet declined vs API refusal). */
+function actionError(err: unknown, action: string): string {
+  if (err instanceof ApiError) return err.message;
+  if (typeof err === 'object' && err !== null && 'code' in err && err.code === 4001) {
+    return `${action} cancelled — the wallet signature was declined`;
+  }
+  return err instanceof Error ? err.message : 'request failed';
 }
 
 /** Narrow a select value to an evidence kind (no casts — type guard). */

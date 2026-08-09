@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import {
   ArrowRightIcon,
-  DownloadSimpleIcon,
   HandCoinsIcon,
   PauseCircleIcon,
   SnowflakeIcon,
@@ -13,7 +12,6 @@ import { formatAmount } from '@/lib/format';
 import { Chip } from '@/components/ui';
 
 export interface ActionHandlers {
-  fund: () => void;
   release: (milestoneId: 1 | 2) => void;
   freeze: () => void;
   hold: () => void;
@@ -37,7 +35,6 @@ export function ActionPanel({
   const m2 = trade.milestones[1];
   const m1Released = m1?.status === 'RELEASED';
   const m2Released = m2?.status === 'RELEASED';
-  const canFund = trade.status === 'DRAFT';
   const canReleaseM1 = !m1Released && (trade.status === 'FUNDED' || trade.status === 'ACTIVE');
   const canReleaseM2 = m1Released && !m2Released && !blocked.has(2);
   const canHold = trade.status === 'FUNDED' || trade.status === 'ACTIVE';
@@ -56,34 +53,17 @@ export function ActionPanel({
       </div>
 
       <div className="mt-5 space-y-3">
-        <button
-          type="button"
-          className={`w-full ${canFund ? 'btn-primary' : 'btn-secondary'} py-3`}
-          disabled={!canFund || busyAny}
-          onClick={() => {
-            onAction.fund();
-          }}
-        >
-          {busy === 'fund' ? <Spinner /> : <DownloadSimpleIcon size={16} weight="bold" />}
-          Fund escrow
-          <span className="opacity-70">· {formatAmount(trade.totalAmount)} aUSDC</span>
-        </button>
-        <p className="text-[11.5px] leading-relaxed text-mist-500">
-          {canFund
-            ? 'Records the importer deposit. No compliance checks are needed to hold value — they gate every release.'
-            : trade.status !== 'DRAFT'
-              ? 'Escrow funded — value is held by the contract.'
-              : 'Fund the trade first.'}
-        </p>
-
-        <div className="h-px bg-white/[0.06]" />
-
-        <div className="mt-3 rounded-lg border border-white/[0.06] bg-ink-900/50 px-3 py-2.5 text-[11.5px] leading-relaxed text-mist-500">
-          <span className="font-semibold text-mist-300">Automatic release is active</span> —
+        <div className="rounded-lg border border-white/[0.06] bg-ink-900/50 px-3 py-2.5 text-[11.5px] leading-relaxed text-mist-500">
+          <span className="font-semibold text-mist-300">
+            Automatic funding and release are active
+          </span>{' '}
+          — the escrow is funded by the server job as soon as the trade is created, and
           evidence-anchored milestones release on their own once fresh checks pass. The buttons
           below are the manual fallback: same fresh A-Pass + validator checks, same bounded signed
           authorization, no click needed for the automatic path.
         </div>
+
+        <div className="h-px bg-white/[0.06]" />
 
         <button
           type="button"

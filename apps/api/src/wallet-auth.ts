@@ -37,6 +37,8 @@ interface ChallengeRecord {
 interface TokenRecord {
   tradeId: string;
   expiresAt: number;
+  /** Verified party wallet the token was issued to (lowercased). */
+  address: string;
 }
 
 interface WalletAuthOptions {
@@ -106,20 +108,34 @@ export function createWalletAuth(options: WalletAuthOptions = {}) {
       }
       const token = randomBytes(32).toString('hex');
       const expiresAt = now + tokenTtlSeconds;
-      tokens.set(token, { tradeId: input.tradeId, expiresAt });
+      tokens.set(token, { tradeId: input.tradeId, expiresAt, address: lower });
       return { ok: true, token, expiresAt, address: signer };
     },
 
+    /**
+     * The verified party address behind a bearer token, when the token is
+     * still valid and scoped to this trade; null otherwise. Party-gated
+     * write routes (e.g. filing a dispute) use this both as the authorization
+     * check and as the identity to attribute the action to.
+     */
+    partyFor,
+
     /** Whether a bearer token currently authorizes reads for this trade. */
-    isAuthorized(token: string | null, tradeId: string): boolean {
-      if (!token) return false;
-      const record = tokens.get(token);
-      if (record?.tradeId !== tradeId) return false;
-      if (Math.floor(Date.now() / 1000) > record.expiresAt) {
-        tokens.delete(token);
-        return false;
-      }
-      return true;
-    },
+    isAuthorized,
   };
+
+  function partyFor(token: string | null, tradeId: string): string | null {
+    if (!token) return null;
+    const record = tokens.get(token);
+    if (record?.tradeId !== tradeId) return null;
+    if (Math.floor(Date.now() / 1000) > record.expiresAt) {
+      tokens.delete(token);
+      return null;
+    }
+    return record.address;
+  }
+
+  function isAuthorized(token: string | null, tradeId: string): boolean {
+    return partyFor(token, tradeId) !== null;
+  }
 }

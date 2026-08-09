@@ -168,8 +168,8 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
               );
             })}
             <p className="pt-2 text-[11.5px] leading-relaxed text-mist-500">
-              Demo hint: import the importer or exporter demo key into MetaMask, or use
-              WalletConnect with a mobile wallet.
+              Hint: import the importer or exporter wallet key into MetaMask, or use WalletConnect
+              with a mobile wallet.
             </p>
           </div>
         )}

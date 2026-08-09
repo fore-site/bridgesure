@@ -40,6 +40,8 @@ function makeEnv(): NodeJS.ProcessEnv {
     BRIDGESURE_DB_DRIVER: 'sqlite',
     BRIDGESURE_DB_FILE: ':memory:',
     BRIDGESURE_SEED_DEMO_TRADES: 'false',
+    // These tests drive funding explicitly (fund-intent); keep it manual.
+    BRIDGESURE_AUTO_FUND_ENABLED: 'false',
   };
 }
 
@@ -84,6 +86,15 @@ describe('trade registry (multi-trade + disputes)', () => {
 
   function authedGet(path: string, token: string) {
     return app.inject({ method: 'GET', url: path, headers: { authorization: `Bearer ${token}` } });
+  }
+
+  /** Operator headers plus a party wallet-proof token for a trade. */
+  async function partyHeaders(
+    account: typeof IMPORTER_ACCOUNT,
+    tradeId: string = TRADE_ID,
+  ): Promise<Record<string, string>> {
+    const token = await partyToken(account, tradeId);
+    return { ...operatorHeaders(), authorization: `Bearer ${token}` };
   }
 
   it('REG-1: registry persists the configured trade and survives get/list round-trips', async () => {
@@ -132,11 +143,11 @@ describe('trade registry (multi-trade + disputes)', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('DSP-1: flag a dispute on a trade, then list it', async () => {
+  it('DSP-1: a party flags a dispute on a trade, then list it', async () => {
     const res = await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'goods not delivered', requiredSignatures: 2 },
     });
     expect(res.statusCode).toBe(201);
@@ -144,11 +155,14 @@ describe('trade registry (multi-trade + disputes)', () => {
       disputeId: string;
       tradeId: string;
       status: string;
+      flaggedBy: string;
       signers: string[];
       evidence: unknown[];
     };
     expect(dispute.tradeId).toBe(TRADE_ID);
     expect(dispute.status).toBe('OPEN');
+    // The flag is attributed to the verified party wallet, not a role header.
+    expect(dispute.flaggedBy).toBe(EXPORTER.toLowerCase());
     expect(dispute.signers).toEqual([]);
     expect(dispute.evidence).toEqual([]);
 
@@ -166,11 +180,62 @@ describe('trade registry (multi-trade + disputes)', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('DSP-3: submit evidence with a document digest; evidence lands on the dispute', async () => {
-    const created = await app.inject({
+  it('DSP-7: guests cannot flag a dispute or anchor evidence — wallet proof required', async () => {
+    // A guest (role header only, no wallet proof) is refused at the door.
+    const flagged = await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
       headers: operatorHeaders(),
+      payload: { reason: 'drive-by flag' },
+    });
+    expect(flagged.statusCode).toBe(401);
+
+    // Evidence is gated the same way: create as a party, then try without a token.
+    const created = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/disputes`,
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
+      payload: { reason: 'needs evidence' },
+    });
+    expect(created.statusCode).toBe(201);
+    const disputeId = (created.json().dispute as { disputeId: string }).disputeId;
+    const evidence = await app.inject({
+      method: 'POST',
+      url: `/disputes/${disputeId}/evidence`,
+      headers: operatorHeaders(),
+      payload: { kind: 'note', label: 'x', digest: `0x${'cd'.repeat(32)}` },
+    });
+    expect(evidence.statusCode).toBe(401);
+
+    // A token minted for another trade does not authorize this one.
+    const other = await app.inject({
+      method: 'POST',
+      url: '/trades',
+      headers: operatorHeaders(),
+      payload: {
+        label: 'bridgesure-dsp-other',
+        totalAmount: '1000000',
+        milestoneOneAmount: '400000',
+        milestoneTwoAmount: '600000',
+      },
+    });
+    expect(other.statusCode).toBe(201);
+    const otherId = (other.json().trade as { id: string }).id;
+    const otherToken = await partyToken(EXPORTER_ACCOUNT, otherId);
+    const crossTrade = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/disputes`,
+      headers: { ...operatorHeaders(), authorization: `Bearer ${otherToken}` },
+      payload: { reason: 'cross-trade flag' },
+    });
+    expect(crossTrade.statusCode).toBe(401);
+  });
+
+  it('DSP-3: a party submits evidence with a document digest; evidence lands on the dispute', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/disputes`,
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'bill of lading mismatch' },
     });
     const disputeId = (created.json().dispute as { disputeId: string }).disputeId;
@@ -178,7 +243,7 @@ describe('trade registry (multi-trade + disputes)', () => {
     const evidence = await app.inject({
       method: 'POST',
       url: `/disputes/${disputeId}/evidence`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: {
         kind: 'bill-of-lading',
         label: 'BL-8821',
@@ -188,15 +253,19 @@ describe('trade registry (multi-trade + disputes)', () => {
       },
     });
     expect(evidence.statusCode).toBe(201);
-    const updated = evidence.json().dispute as { evidence: unknown[]; updatedAt: string };
+    const updated = evidence.json().dispute as {
+      evidence: { submittedBy: string }[];
+      updatedAt: string;
+    };
     expect(updated.evidence.length).toBe(1);
+    expect(updated.evidence[0]?.submittedBy).toBe(EXPORTER.toLowerCase());
   });
 
   it('DSP-4: multi-sig — two signers reach the threshold; dispute resolves', async () => {
     const created = await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'need admin review', requiredSignatures: 2 },
     });
     const disputeId = (created.json().dispute as { disputeId: string }).disputeId;
@@ -234,7 +303,7 @@ describe('trade registry (multi-trade + disputes)', () => {
     const created = await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'threshold test', requiredSignatures: 2 },
     });
     const disputeId = (created.json().dispute as { disputeId: string }).disputeId;
@@ -264,7 +333,7 @@ describe('trade registry (multi-trade + disputes)', () => {
     const created = await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'x' },
     });
     const disputeId = (created.json().dispute as { disputeId: string }).disputeId;
@@ -459,7 +528,7 @@ describe('trade registry (multi-trade + disputes)', () => {
     await app.inject({
       method: 'POST',
       url: `/trades/${TRADE_ID}/disputes`,
-      headers: operatorHeaders(),
+      headers: await partyHeaders(EXPORTER_ACCOUNT),
       payload: { reason: 'x' },
     });
     const res = await app.inject({ method: 'GET', url: '/admin/overview' });

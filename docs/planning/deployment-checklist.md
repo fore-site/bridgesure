@@ -31,8 +31,8 @@ and docs/runbooks/demo.md). Read-only checks run by default.
    (org-registered circle faucet; tx `0x56f73d4a...`, block 52004427) and 20 from Anchorage
    Digital `0x3FeEeD1a2...` (tx `0x83854b08...`, block 52225213); three other faucet drips
    from unregistered dispensers were refunded as raw USDC. The `POST /faucet` path remains
-   unbacked for Monad aUSDC but no longer blocks the demo — proceed to fund the escrow and
-   run the release sequence.
+   unbacked for Monad aUSDC; funding now flows automatically from the importer wallet via the
+   auto-fund job.
 
 ## Ordered checklist
 
@@ -53,7 +53,8 @@ Postgres pooler: `DATABASE_URL` is set in `.env` (never committed), which auto-s
 postgres driver; TLS is auto-enabled for `*.supabase.co`/`*.supabase.com` hosts. All eight
 tables (`trades`, `audits`, `nonces`, `idempotency`, `releases`, `tx_hashes`, `disputes`,
 `evidence`) are created idempotently on first boot; verified live against
-`aws-1-eu-west-3.pooler.supabase.com` with 3 trades seeded.
+`aws-1-eu-west-3.pooler.supabase.com` with only the configured escrow-bound trade
+(`BRIDGESURE_SEED_DEMO_TRADES=false` — no seeded fixtures).
 
 - Connection string: `DATABASE_URL` or `BRIDGESURE_DB_URL`; `BRIDGESURE_DB_DRIVER` overrides
   inference; `BRIDGESURE_DB_SSL` forces TLS on/off; SQLite fallback is `BRIDGESURE_DB_FILE`.
@@ -104,13 +105,15 @@ tables (`trades`, `audits`, `nonces`, `idempotency`, `releases`, `tx_hashes`, `d
 
 ### Funding and release (writes)
 
-- [ ] Resolve open item 3: obtain importer aUSDC (faucet or transfer).
+- [x] Open item 3 resolved (2026-08-08): the importer holds 40 aUSDC, both milestones covered.
 - [x] `pnpm provision:fund-escrow` implemented: prints balances, requires `--confirm`, then
       approves + `fund(amount)` from the importer wallet.
 - [x] `pnpm provision:submit-release --payload <release.json>` implemented: submits a
       server-signed authorization on-chain; the contract re-runs CVI checks before the transfer.
-- [ ] Fund the escrow; verify escrow balance and `Funded` event. Release milestone one; verify
-      exporter balance, `MilestoneReleased` event, and transaction hash.
+- [x] Auto-fund (2026-08-09): the server funds DRAFT trades on-chain from the importer key
+      (`BRIDGESURE_AUTO_FUND_ENABLED`, default true); `fund-intent` remains an idempotent
+      fallback. Milestone one released on-chain — `Funded` and `MilestoneReleased` events
+      recorded, exporter balance credited.
 
 ### Freeze and blocked release (writes)
 
@@ -128,9 +131,13 @@ tables (`trades`, `audits`, `nonces`, `idempotency`, `releases`, `tx_hashes`, `d
 
 ### Demo close-out
 
-- [ ] Run `pnpm check` (root) and `forge fmt --check`, `forge build`, `forge test` (contracts/).
-- [ ] Finish README, configuration guide, deployment addresses, screenshots, and demo runbook.
-- [ ] Update `.env.example` if any configuration contract changed.
+- [x] `pnpm check` (root) and `forge fmt --check`, `forge build`, `forge test` (contracts/) —
+      green on the live-recording prep (2026-08-09).
+- [x] README, configuration guide (`.env.example`), deployment addresses, and demo runbook
+      refreshed for the automatic fund/release flow.
+- [x] Update `.env.example` if any configuration contract changed — done
+      (`BRIDGESURE_SEED_DEMO_TRADES=false`, auto-fund/auto-release vars documented).
+- [ ] Capture final screenshots and record the demo for submission.
 
 ## Commit expectations
 

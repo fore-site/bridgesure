@@ -25,7 +25,9 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 4. Open http://localhost:3000 — the landing page explains the product; "Open the app" takes
    you to the trading-party dashboard (/dashboard) with balances, TVL, contract alerts and
    milestone deadlines.
-5. **Fund escrow** from the operator portal (/admin/dashboard). Then open the trade in the
+5. Funding is automatic: the server job (auto-fund) funds DRAFT trades as soon as they are
+   created — on-chain from the importer key in live mode, mirrored to the registry in demo
+   mode — so the operator portal has no Fund button. Then open the trade in the
    party-facing app (/trades/[trade_id]) and anchor a document: hash a bill of lading in the
    browser and **Anchor as evidence** for milestone one. Releases are automatic — a server job
    runs fresh A-Pass + validator checks and releases the milestone by itself, no operator
@@ -35,8 +37,8 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
    audit packet. Trades, audit trails, disputes and evidence persist in the configured
    registry across restarts. The operator portal keeps a **manual release fallback** (labeled as
    such) — same fresh checks and signed authorization, for cases without anchored evidence or
-   when automation is off. Set `BRIDGESURE_AUTO_RELEASE_ENABLED=false` to disable the automatic
-   job entirely.
+   when automation is off. Set `BRIDGESURE_AUTO_FUND_ENABLED=false` and/or
+   `BRIDGESURE_AUTO_RELEASE_ENABLED=false` to disable the corresponding automatic job.
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 
@@ -73,15 +75,18 @@ effect — and refuses to run without `--confirm`. All commands require
 ### A-Pass records (demo participants)
 
 7. `pnpm provision:apass --party importer --confirm` and
-   `pnpm provision:apass --party exporter --confirm` — create/override the demo records with
-   synthetic identity fixtures (a `1000` override response is retried automatically).
+   `pnpm provision:apass --party exporter --confirm` — create/override the participant
+   records (a `1000` override response is retried automatically).
 
 ### Fund and release milestone one
 
 8. `pnpm provision:fund-escrow --confirm` — importer approves and funds the escrow; prints
-   importer and escrow balances before and after.
-9. Mirror the funding in the API (live mode): `POST /trades/:id/fund-intent` (the admin portal
-   Fund button), then release milestone one. Save the response payload and submit it on-chain:
+   importer and escrow balances before and after. This is the same path the auto-fund job
+   takes: with the importer key + escrow configured, the server funds DRAFT trades on-chain by
+   itself (watch the audit feed for the `auto-fund` record).
+9. The registry mirror is also automatic in live mode (`auto-fund` marks the trade FUNDED with
+   the tx hashes); `POST /trades/:id/fund-intent` remains as a manual fallback. Then release
+   milestone one. Save the response payload and submit it on-chain:
    `pnpm provision:submit-release --payload release-m1.json --confirm` — the contract re-runs
    the CVI checks before moving value. Record the tx hash for the Travel Rule export.
 

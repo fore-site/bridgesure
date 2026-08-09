@@ -28,7 +28,7 @@ const commands: { command: string; description: string }[] = [
   },
   {
     command: 'pnpm provision:apass --party importer|exporter',
-    description: 'create/override a demo A-Pass record (synthetic identity)',
+    description: 'create/override a participant A-Pass record (synthetic identity)',
   },
   {
     command: 'pnpm provision:fund-escrow [--amount <base units>]',
@@ -44,7 +44,7 @@ const commands: { command: string; description: string }[] = [
   },
   {
     command: 'pnpm provision:unfreeze-exporter',
-    description: 'reactivate the exporter A-Pass (re-run the demo)',
+    description: 'reactivate the exporter A-Pass',
   },
   {
     command: 'pnpm provision:set-paused --paused true|false',

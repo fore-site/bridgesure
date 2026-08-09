@@ -77,12 +77,13 @@ const envSchema = z.object({
     (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
     z.boolean().optional(),
   ),
-  // Seed demo trades on boot so the registry lists / dashboard have content.
+  // Seed synthetic demo trades on boot for dashboard content. Default is off:
+  // the live registry holds only the configured escrow-bound trade.
   // (Hand-rolled boolean parse: z.coerce.boolean() maps the string "false" to
   // true because any non-empty string is truthy — a real footgun.)
   BRIDGESURE_SEED_DEMO_TRADES: z.preprocess(
     (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
-    z.boolean().default(true),
+    z.boolean().default(false),
   ),
   // Automatic milestone releases: a server job watches funded trades and,
   // when a pending milestone has anchored evidence, runs fresh checks, signs
@@ -94,6 +95,17 @@ const envSchema = z.object({
     z.boolean().default(true),
   ),
   BRIDGESURE_AUTO_RELEASE_INTERVAL_MS: z.coerce.number().int().min(2_000).default(10_000),
+  // Automatic escrow funding: a server job watches DRAFT trades and funds
+  // them without an operator click. In live mode (importer key + escrow set)
+  // it approves + funds on-chain for the configured escrow-bound trade; in
+  // demo mode it mirrors the funded state to the registry. Trades it cannot
+  // fund yet (e.g. importer balance below the total) are retried on later
+  // ticks and the reason is recorded once in the audit trail.
+  BRIDGESURE_AUTO_FUND_ENABLED: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
+    z.boolean().default(true),
+  ),
+  BRIDGESURE_AUTO_FUND_INTERVAL_MS: z.coerce.number().int().min(2_000).default(10_000),
 });
 
 export type Config = z.infer<typeof envSchema>;

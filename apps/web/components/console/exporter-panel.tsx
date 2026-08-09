@@ -28,7 +28,7 @@ import type { ReleaseAllowed, TradeView } from '@/lib/types';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /**
- * Exporter seat of the demo. After the operator authorizes a milestone (fresh
+ * Exporter seat. After the operator authorizes a milestone (fresh
  * A-Pass + validator checks, server-signed EIP-712 authorization), the
  * exporter claims the payout by submitting the authorization on-chain from
  * this browser wallet. The escrow re-runs the CVI checks before transferring.
@@ -195,8 +195,8 @@ export function ExporterPanel({
           </button>
           <p className="text-[11.5px] leading-relaxed text-mist-500">
             {hasInjected
-              ? 'Connect the demo exporter wallet — the configured counterparty of this trade.'
-              : 'No injected wallet found. Install MetaMask, add Monad Testnet (chain 10143), and import the exporter demo key.'}
+              ? 'Connect the exporter wallet — the configured counterparty of this trade.'
+              : 'No injected wallet found. Install MetaMask, add Monad Testnet (chain 10143), and import the exporter key.'}
           </p>
         </div>
       ) : (

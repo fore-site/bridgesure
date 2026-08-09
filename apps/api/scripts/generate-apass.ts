@@ -28,7 +28,7 @@ await runMain(async () => {
     action: `generate_apass for ${party}`,
     target: `${config.BRIDGESURE_CHAIN} · ${wallet} · customer ${customerId}`,
     effect:
-      'creates or overrides the participant A-Pass record (synthetic demo identity; a 1000 override is handled automatically)',
+      'creates or overrides the participant A-Pass record (synthetic test identity; a 1000 override is handled automatically)',
   };
   const confirmed = hasFlag(args, 'confirm');
   if (!confirmed) {

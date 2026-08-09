@@ -37,6 +37,8 @@ function makeEnv(): NodeJS.ProcessEnv {
     BRIDGESURE_DB_DRIVER: 'sqlite',
     BRIDGESURE_DB_FILE: ':memory:',
     BRIDGESURE_SEED_DEMO_TRADES: 'false',
+    // The e2e choreography drives funding explicitly; keep it manual.
+    BRIDGESURE_AUTO_FUND_ENABLED: 'false',
   };
 }
 

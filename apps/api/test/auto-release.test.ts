@@ -40,6 +40,8 @@ function makeEnv(): NodeJS.ProcessEnv {
     BRIDGESURE_SEED_DEMO_TRADES: 'false',
     BRIDGESURE_AUTO_RELEASE_ENABLED: 'true',
     BRIDGESURE_AUTO_RELEASE_INTERVAL_MS: '2000',
+    // These tests fund explicitly (fund-intent); keep funding manual.
+    BRIDGESURE_AUTO_FUND_ENABLED: 'false',
   };
 }
 

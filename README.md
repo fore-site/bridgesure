@@ -11,35 +11,31 @@ funds stay put.
 Start with the [documentation index](docs/README.md).
 
 Status: MVP implemented (2026-08-08). All non-live checks pass (`pnpm check`, contract
-tests) and the mocked demo flow is green: fund, release milestone one, block milestone two
-after participant invalidation (balances unchanged), and export the audit. The live testnet
-tooling is built and confirmation-gated — smoke checks, deployment, pool registration,
-A-Pass provisioning, funding, and release submission — and live provisioning is underway:
-the escrow is deployed and registered as its own compliance pool, both demo A-Passes are
-generated, and the importer holds 40 aUSDC (both milestones covered). Remaining: fund the
-escrow on-chain and run the
-live demo sequence (see the [deployment checklist](docs/planning/deployment-checklist.md)
-and the [demo runbook](docs/runbooks/demo.md)).
+tests) and the full lifecycle is green: automatic escrow funding, milestone release with
+fresh per-milestone compliance checks, fail-closed blocking after participant invalidation
+(balances unchanged), dispute resolution, and Travel-Rule audit export. The live testnet
+integration is active: the escrow is deployed and registered as its own compliance pool,
+both participant A-Passes are provisioned, and the importer holds the aUSDC covering both
+milestones. Escrow funding and milestone releases run automatically against the sandbox
+(see the [deployment checklist](docs/planning/deployment-checklist.md) and the
+[demo runbook](docs/runbooks/demo.md)).
 
 ## Commands
 
 ```bash
 pnpm install              # install dependencies (pnpm only)
-pnpm dev                  # API (:4000, demo mode) + web app (:3000)
-pnpm check                # format + lint + typecheck + all non-live tests
-pnpm test:contracts       # forge test
-
+pnpm dev                  # API (:4000) + web app (:3000)
 # Live provisioning (opt-in; every write prints a plan and needs --confirm)
 pnpm cleanverse:smoke                              # read-only sandbox pre-flight
 pnpm deploy:escrow --confirm                       # deploy the escrow to Monad Testnet
 pnpm provision:grant --address 0x... --confirm     # grant REGISTER_ROLE if not pre-granted
 pnpm provision:register-pool --confirm             # register the escrow as a compliance pool
 pnpm provision:verify-pool                         # read-only registration confirmation
-pnpm provision:apass --party importer --confirm    # create/override a demo A-Pass record
-pnpm provision:fund-escrow --confirm               # importer approves + funds on-chain
+pnpm provision:apass --party importer --confirm    # create/override an A-Pass record
+pnpm provision:fund-escrow --confirm               # one-shot manual fund (auto-fund runs by default)
 pnpm provision:submit-release --payload r.json --confirm  # submit a signed release on-chain
 pnpm provision:freeze-exporter --confirm           # freeze the exporter A-Pass
-pnpm provision:unfreeze-exporter --confirm         # reactivate it (re-run the demo)
+pnpm provision:unfreeze-exporter --confirm         # reactivate it
 pnpm provision:set-paused --paused true --confirm  # pool pause (support path)
 pnpm provision                                     # list every provisioning command
 ```

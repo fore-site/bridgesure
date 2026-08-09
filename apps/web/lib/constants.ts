@@ -1,6 +1,6 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_BRIDGESURE_API_URL ?? 'http://localhost:4000';
 
-/** Demo operator role used by the console when talking to the API. */
+/** Operator role used by the console when talking to the API. */
 export const OPERATOR_ROLE = 'issue-member';
 
 export const CHAIN = {
