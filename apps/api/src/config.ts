@@ -62,13 +62,21 @@ const envSchema = z.object({
   BRIDGESURE_CLEANVERSE_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(400),
   BRIDGESURE_PORT: z.coerce.number().int().positive().default(4_000),
   BRIDGESURE_WEB_ORIGIN: z.string().default('http://localhost:3000'),
-  // Trade registry persistence: sqlite (default, better-sqlite3) or postgres
-  // (pg). Schema is identical across dialects; the chain stays the source of
-  // truth for balances. sqlite: BRIDGESURE_DB_FILE (':memory:' for tests).
-  // postgres: BRIDGESURE_DB_URL connection string.
-  BRIDGESURE_DB_DRIVER: z.enum(['sqlite', 'postgres']).default('sqlite'),
-  BRIDGESURE_DB_FILE: z.string().default('./data/bridgesure.sqlite'),
+  // Trade registry persistence — never hardcoded: it is entirely driven by
+  // environment variables. Providing a Postgres connection string (DATABASE_URL
+  // or BRIDGESURE_DB_URL — Supabase, Neon, any PG) selects the postgres driver
+  // automatically; BRIDGESURE_DB_DRIVER overrides the inference. SQLite is the
+  // driverless local fallback via BRIDGESURE_DB_FILE (':memory:' for tests).
+  DATABASE_URL: z.string().optional(),
   BRIDGESURE_DB_URL: z.string().optional(),
+  BRIDGESURE_DB_DRIVER: z.enum(['sqlite', 'postgres']).optional(),
+  BRIDGESURE_DB_FILE: z.string().default('./data/bridgesure.sqlite'),
+  // Force TLS for the Postgres pool. Default: auto-detected (any sslmode in
+  // the connection string, or a Supabase host, enables TLS).
+  BRIDGESURE_DB_SSL: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
+    z.boolean().optional(),
+  ),
   // Seed demo trades on boot so the registry lists / dashboard have content.
   // (Hand-rolled boolean parse: z.coerce.boolean() maps the string "false" to
   // true because any non-empty string is truthy — a real footgun.)

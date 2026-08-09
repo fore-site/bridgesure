@@ -21,6 +21,7 @@ import {
   tradeToRow,
 } from './mappers.js';
 import * as schema from './schema.pg.js';
+import type { PgSsl } from './connection.js';
 import { nonceKey, nonceKeyParts } from './sqlite-registry.js';
 import type {
   CreateDisputeInput,
@@ -40,8 +41,8 @@ export class PostgresRegistry implements TradeRegistry {
   private readonly pool: Pool;
   private readonly db: NodePgDatabase<typeof schema>;
 
-  constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString });
+  constructor(connectionString: string, ssl?: PgSsl) {
+    this.pool = new Pool({ connectionString, ...(ssl !== undefined ? { ssl } : {}) });
     this.db = drizzle(this.pool, { schema });
   }
 
@@ -277,7 +278,7 @@ export class PostgresRegistry implements TradeRegistry {
     };
     await this.db.insert(schema.evidence).values(evidenceToRow(disputeId, evidence));
     await this.touch(disputeId);
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   async signDispute(disputeId: string, signer: string): Promise<Dispute> {
@@ -290,7 +291,7 @@ export class PostgresRegistry implements TradeRegistry {
       .update(schema.disputes)
       .set({ signers_json: JSON.stringify(signers), updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   async resolveDispute(disputeId: string, resolution: DisputeResolution): Promise<Dispute> {
@@ -303,7 +304,7 @@ export class PostgresRegistry implements TradeRegistry {
       .update(schema.disputes)
       .set({ status: 'RESOLVED', resolution, updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   private async touch(disputeId: string): Promise<void> {
@@ -312,6 +313,12 @@ export class PostgresRegistry implements TradeRegistry {
       .set({ updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
   }
+}
+
+/** Narrow a fresh dispute read (the write above just succeeded). */
+function requireDispute(dispute: Dispute | null, disputeId: string): Dispute {
+  if (!dispute) throw new Error(`dispute ${disputeId} not found`);
+  return dispute;
 }
 
 export type { PoolClient };

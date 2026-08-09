@@ -1,6 +1,7 @@
 import type {
   Milestone,
   MilestoneStatus,
+  ReasonCode,
   ReleaseAuthorization,
   Trade,
   TradeStatus,
@@ -8,12 +9,123 @@ import type {
 import type { AuditRecord } from '../audit.js';
 import type { ReleaseOutcome } from '../orchestrator.js';
 import type { AuditRow, TradeRow } from './rows.js';
+import type { Dispute, DisputeResolution, DisputeStatus, Evidence } from './registry.js';
+import type { DisputeRow, EvidenceRow } from './rows.js';
 
 /**
  * Pure mapping between the framework-free domain types and the persisted row
  * shapes. Bigints travel as decimal strings; nested structures as JSON text;
  * booleans as 0|1 integers (portable across SQLite and Postgres).
+ *
+ * Rows are validated with runtime type guards on the way back in (no casts):
+ * a value that does not match the enum/union it is read as is data
+ * corruption and is rejected loudly rather than silently typed.
  */
+
+// ---------------------------------------------------------------------------
+// Type guards (runtime narrowing for persisted values)
+// ---------------------------------------------------------------------------
+
+const TRADE_STATUSES = new Set<string>([
+  'DRAFT',
+  'FUNDED',
+  'ACTIVE',
+  'COMPLETE',
+  'HOLD',
+  'REFUNDED',
+]);
+
+const MILESTONE_STATUSES = new Set<string>(['PENDING', 'RELEASED', 'BLOCKED']);
+
+const REASON_CODES = new Set<string>([
+  'APASS_NOT_VALID',
+  'VALIDATOR_REJECTED',
+  'VALIDATOR_PAUSED',
+  'EVIDENCE_STALE',
+  'CLEANVERSE_UNAVAILABLE',
+  'MALFORMED_RESPONSE',
+  'LOCAL_STATE_DENIED',
+  'AUTH_EXPIRED',
+  'AUTH_REPLAY',
+  'TOKEN_TRANSFER_REJECTED',
+]);
+
+function isTradeStatus(value: string): value is TradeStatus {
+  return TRADE_STATUSES.has(value);
+}
+
+function isMilestoneStatus(value: string): value is MilestoneStatus {
+  return MILESTONE_STATUSES.has(value);
+}
+
+function isReasonCode(value: string): value is ReasonCode {
+  return REASON_CODES.has(value);
+}
+
+function isAuditDecision(value: string): value is 'allowed' | 'denied' {
+  return value === 'allowed' || value === 'denied';
+}
+
+function isMilestoneId(value: number | null): value is 1 | 2 | null {
+  return value === null || value === 1 || value === 2;
+}
+
+function isDisputeStatus(value: string): value is DisputeStatus {
+  return value === 'OPEN' || value === 'RESOLVED';
+}
+
+function isDisputeResolution(value: string | null): value is DisputeResolution | null {
+  return value === null || value === 'approved' || value === 'rejected';
+}
+
+/** Parse a JSON array of strings (signers, cleanverse request ids). */
+function parseStringArray(json: string): string[] {
+  const parsed: unknown = JSON.parse(json);
+  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
+    throw new Error('corrupt registry row: expected a JSON string array');
+  }
+  return parsed;
+}
+
+/** Parse arbitrary JSON into an unknown value (never `any` escapes). */
+function parseUnknown(json: string): unknown {
+  const parsed: unknown = JSON.parse(json);
+  return parsed;
+}
+
+/** Runtime record guard (the repository's no-cast narrowing idiom). */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isReleaseAuthorization(value: unknown): value is ReleaseAuthorization {
+  if (!isRecord(value)) return false;
+  const v = value;
+  return (
+    typeof v.chainId === 'bigint' &&
+    typeof v.escrow === 'string' &&
+    typeof v.tradeId === 'string' &&
+    (v.milestoneId === 1 || v.milestoneId === 2) &&
+    typeof v.importer === 'string' &&
+    typeof v.exporter === 'string' &&
+    typeof v.token === 'string' &&
+    typeof v.amount === 'bigint' &&
+    typeof v.nonce === 'bigint' &&
+    typeof v.expiry === 'number' &&
+    typeof v.evidenceDigest === 'string' &&
+    typeof v.signer === 'string'
+  );
+}
+
+function isEvidencePayload(value: unknown): value is Evidence['payload'] {
+  if (!isRecord(value)) return false;
+  const v = value;
+  return (
+    typeof v.submittedAt === 'string' &&
+    (v.fileName === undefined || typeof v.fileName === 'string') &&
+    (v.note === undefined || typeof v.note === 'string')
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Trade
@@ -50,7 +162,7 @@ export function rowToTrade(row: TradeRow): Trade {
     exporter: row.exporter,
     token: row.token,
     totalAmount: BigInt(row.total_amount),
-    status: row.status as TradeStatus,
+    status: requireTradeStatus(row.status),
     milestones: [
       milestoneRow(
         1,
@@ -79,9 +191,18 @@ function milestoneRow(
   return {
     id,
     amount: BigInt(amount),
-    status: status as MilestoneStatus,
+    status: isMilestoneStatus(status) ? status : throwCorrupt(`milestone status ${status}`),
     evidenceHash: evidence,
   };
+}
+
+function requireTradeStatus(value: string): TradeStatus {
+  if (!isTradeStatus(value)) throw new Error(`corrupt registry row: unknown trade status ${value}`);
+  return value;
+}
+
+function throwCorrupt(detail: string): never {
+  throw new Error(`corrupt registry row: ${detail}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -112,16 +233,27 @@ export function auditToRow(record: AuditRecord): AuditRow {
 }
 
 export function rowToAudit(row: AuditRow): AuditRecord {
+  const decision = row.decision;
+  const reasonCode = row.reason_code;
+  if (typeof decision !== 'string' || !isAuditDecision(decision)) {
+    throw new Error(`corrupt registry row: unknown audit decision ${decision}`);
+  }
+  if (reasonCode !== null && (typeof reasonCode !== 'string' || !isReasonCode(reasonCode))) {
+    throw new Error(`corrupt registry row: unknown reason code ${reasonCode}`);
+  }
+  if (!isMilestoneId(row.milestone_id)) {
+    throw new Error('corrupt registry row: invalid milestone id');
+  }
   return {
     auditId: row.audit_id,
     traceId: row.trace_id,
-    cleanverseRequestIds: JSON.parse(row.cleanverse_request_ids) as string[],
+    cleanverseRequestIds: parseStringArray(row.cleanverse_request_ids),
     actorRole: row.actor_role,
     operation: row.operation,
-    decision: row.decision as 'allowed' | 'denied',
-    reasonCode: row.reason_code as AuditRecord['reasonCode'],
+    decision,
+    reasonCode,
     tradeId: row.trade_id,
-    milestoneId: row.milestone_id as 1 | 2 | null,
+    milestoneId: row.milestone_id,
     evidenceAgeSeconds: row.evidence_age_seconds,
     apassCode: row.apass_code,
     validatorValid: intToBool(row.validator_valid),
@@ -130,7 +262,7 @@ export function rowToAudit(row: AuditRow): AuditRecord {
     amount: row.amount,
     txHash: row.tx_hash,
     observedAt: row.observed_at,
-    redactedContext: JSON.parse(row.redacted_context) as unknown,
+    redactedContext: parseUnknown(row.redacted_context),
   };
 }
 
@@ -140,16 +272,49 @@ export function rowToAudit(row: AuditRow): AuditRecord {
 
 /** Serialize a release outcome for the idempotency table. */
 export function outcomeToJson(outcome: ReleaseOutcome): string {
-  return JSON.stringify(outcome, (_key, value) => (typeof value === 'bigint' ? `${value}` : value));
+  return JSON.stringify(outcome, (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
 }
 
-/** Parse a stored release outcome. Bigint fields were stringified on write. */
+/**
+ * Parse a stored release outcome. Bigint fields were stringified on write;
+ * the reviver converts the digit strings back. A shape guard rejects rows
+ * that do not match the allowed/denied union.
+ */
 export function jsonToOutcome(json: string): ReleaseOutcome {
-  return JSON.parse(json, (_key, value) =>
-    typeof value === 'string' && /^\d+$/.test(value) && /nonce|amount/.test(_key)
+  const parsed: unknown = JSON.parse(json, (_key: string, value: unknown) =>
+    typeof value === 'string' && /^\d+$/.test(value) && /nonce|amount|chainId/.test(_key)
       ? BigInt(value)
       : value,
-  ) as ReleaseOutcome;
+  );
+  if (!isReleaseOutcome(parsed)) {
+    throw new Error('corrupt registry row: malformed stored release outcome');
+  }
+  return parsed;
+}
+
+function isReleaseOutcome(value: unknown): value is ReleaseOutcome {
+  if (!isRecord(value)) return false;
+  const v = value;
+  if (v.decision === 'denied') {
+    return (
+      typeof v.reasonCode === 'string' &&
+      isReasonCode(v.reasonCode) &&
+      typeof v.auditId === 'string'
+    );
+  }
+  if (v.decision === 'allowed') {
+    return (
+      v.reasonCode === null &&
+      isReleaseAuthorization(v.auth) &&
+      typeof v.signature === 'string' &&
+      typeof v.evidenceDigest === 'string' &&
+      typeof v.nonce === 'bigint' &&
+      typeof v.auditId === 'string'
+    );
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,23 +322,26 @@ export function jsonToOutcome(json: string): ReleaseOutcome {
 // ---------------------------------------------------------------------------
 
 export function authToJson(auth: ReleaseAuthorization): string {
-  return JSON.stringify(auth, (_key, value) => (typeof value === 'bigint' ? `${value}` : value));
+  return JSON.stringify(auth, (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
 }
 
 export function jsonToAuth(json: string): ReleaseAuthorization {
-  return JSON.parse(json, (_key, value) =>
+  const parsed: unknown = JSON.parse(json, (_key: string, value: unknown) =>
     typeof value === 'string' && /^\d+$/.test(value) && /nonce|amount|chainId/.test(_key)
       ? BigInt(value)
       : value,
-  ) as ReleaseAuthorization;
+  );
+  if (!isReleaseAuthorization(parsed)) {
+    throw new Error('corrupt registry row: malformed stored release authorization');
+  }
+  return parsed;
 }
 
 // ---------------------------------------------------------------------------
 // Disputes + evidence
 // ---------------------------------------------------------------------------
-
-import type { Dispute, DisputeResolution, DisputeStatus, Evidence } from './registry.js';
-import type { DisputeRow, EvidenceRow } from './rows.js';
 
 export function disputeToRow(dispute: Dispute): DisputeRow {
   return {
@@ -191,15 +359,21 @@ export function disputeToRow(dispute: Dispute): DisputeRow {
 }
 
 export function rowToDispute(row: DisputeRow, evidenceList: Evidence[] = []): Dispute {
+  if (!isDisputeStatus(row.status)) {
+    throw new Error(`corrupt registry row: unknown dispute status ${row.status}`);
+  }
+  if (!isDisputeResolution(row.resolution)) {
+    throw new Error(`corrupt registry row: unknown dispute resolution ${row.resolution}`);
+  }
   return {
     disputeId: row.dispute_id,
     tradeId: row.trade_id,
     flaggedBy: row.flagged_by,
     reason: row.reason,
-    status: row.status as DisputeStatus,
-    resolution: row.resolution as DisputeResolution | null,
+    status: row.status,
+    resolution: row.resolution,
     requiredSignatures: row.required_signatures,
-    signers: JSON.parse(row.signers_json) as string[],
+    signers: parseStringArray(row.signers_json),
     evidence: evidenceList,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -220,13 +394,17 @@ export function evidenceToRow(disputeId: string, evidence: Evidence): EvidenceRo
 }
 
 export function rowToEvidence(row: EvidenceRow): Evidence {
+  const payload: unknown = parseUnknown(row.payload_json);
+  if (!isEvidencePayload(payload)) {
+    throw new Error('corrupt registry row: malformed evidence payload');
+  }
   return {
     evidenceId: row.evidence_id,
     submittedBy: row.submitted_by,
     kind: row.kind,
     label: row.label,
     digest: row.digest,
-    payload: JSON.parse(row.payload_json) as Evidence['payload'],
+    payload,
     createdAt: row.created_at,
   };
 }

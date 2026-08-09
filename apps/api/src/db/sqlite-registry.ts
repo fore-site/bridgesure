@@ -54,14 +54,16 @@ export class SqliteRegistry implements TradeRegistry {
     this.db = drizzle(this.sqlite, { schema });
   }
 
-  async init(): Promise<void> {
+  init(): Promise<void> {
     for (const statement of DDL) {
       this.sqlite.exec(statement);
     }
+    return Promise.resolve();
   }
 
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.sqlite.close();
+    return Promise.resolve();
   }
 
   // -- trades --------------------------------------------------------------
@@ -281,7 +283,7 @@ export class SqliteRegistry implements TradeRegistry {
     };
     await this.db.insert(schema.evidence).values(evidenceToRow(disputeId, evidence));
     await this.touch(disputeId);
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   async signDispute(disputeId: string, signer: string): Promise<Dispute> {
@@ -294,7 +296,7 @@ export class SqliteRegistry implements TradeRegistry {
       .update(schema.disputes)
       .set({ signers_json: JSON.stringify(signers), updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   async resolveDispute(disputeId: string, resolution: DisputeResolution): Promise<Dispute> {
@@ -307,7 +309,7 @@ export class SqliteRegistry implements TradeRegistry {
       .update(schema.disputes)
       .set({ status: 'RESOLVED', resolution, updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
-    return (await this.getDispute(disputeId)) as Dispute;
+    return requireDispute(await this.getDispute(disputeId), disputeId);
   }
 
   private async touch(disputeId: string): Promise<void> {
@@ -316,6 +318,12 @@ export class SqliteRegistry implements TradeRegistry {
       .set({ updated_at: new Date().toISOString() })
       .where(eq(schema.disputes.dispute_id, disputeId));
   }
+}
+
+/** Narrow a fresh dispute read (the write above just succeeded). */
+function requireDispute(dispute: Dispute | null, disputeId: string): Dispute {
+  if (!dispute) throw new Error(`dispute ${disputeId} not found`);
+  return dispute;
 }
 
 export function nonceKey(auth: ReleaseAuthorization): string {

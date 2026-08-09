@@ -251,7 +251,8 @@ export function buildServer(deps: {
           amount,
         }),
       );
-      const updated = (await registry.getTrade(id)) as Trade;
+      const updated = await registry.getTrade(id);
+      if (!updated) throw new Error(`trade ${id} not found`);
       return { funded: true, amount: amount.toString(), status: updated.status };
     },
   );
@@ -327,7 +328,8 @@ export function buildServer(deps: {
           context: { reasonHash: hashReason(parsed.data.reason) },
         }),
       );
-      const updated = (await registry.getTrade(id)) as Trade;
+      const updated = await registry.getTrade(id);
+      if (!updated) throw new Error(`trade ${id} not found`);
       return { held: true, status: updated.status };
     },
   );
