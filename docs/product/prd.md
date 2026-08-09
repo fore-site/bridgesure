@@ -147,9 +147,9 @@ Travel Rule report reference. It must not expose credentials, PII, ciphertext, o
 A ~3 minute walkthrough that proves the "compliance-continuous" claim with one successful
 release and one fail-closed release.
 
-1. **Open the trade.** The console shows one trade in DRAFT: importer and exporter wallets, the
-   configured CVA (aUSDC), total amount split into two milestones, and the active compliance
-   policy (jurisdiction + minimum A-Pass tier).
+1. **Open the trade.** The trade view shows the trade in DRAFT: importer and exporter wallets,
+   the configured CVA (aUSDC), total amount split into two milestones, and the active
+   compliance policy (jurisdiction + minimum A-Pass tier).
 2. **Fund.** The importer funds the escrow with the configured CVA. The screen shows the escrow
    balance and the `Funded` event/hash — value is now held by the contract.
 3. **Release milestone one.** The operator submits milestone-one evidence. The API runs fresh

@@ -31,7 +31,7 @@ re-run B2 → B3 → B5 → B6 → B7 with no further code changes needed.
 
 Unblocks: `registerApass` CVA-vault registration for the escrow, which the
 aUSDC `canTransfer` policy currently gates on. Until it lands, funding and
-release transactions from the console will revert.
+release transactions from the web app will revert.
 
 ## Why this is the plan (evidence)
 
@@ -100,7 +100,7 @@ forge build && forge test && forge fmt --check
 ## Part B — execution sequence (each write is confirmation-gated)
 
 Pre-flight: restart the API after step B1 so it picks up the new
-`BRIDGESURE_ESCROW_ADDRESS` from `.env` (demo console talks to the API).
+`BRIDGESURE_ESCROW_ADDRESS` from `.env` (the demo app talks to the API).
 
 ### B1. Redeploy the escrow
 

@@ -4,7 +4,7 @@
 
 - **MVP implemented (2026-08-08).** The typed Cleanverse transport, the escrow state
   machine, the `BridgeSureEscrow` contract, the release-orchestration API, and the web
-  console (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 21/21).
+  app (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 21/21).
 - **Web app shipped.** A product landing page and the trading-party app at `apps/web`:
   a consumer dashboard (balances, TVL, alerts, milestone deadlines), a shared trade view
   (`/trades/[id]` — the connected wallet decides the importer/exporter seat), and a

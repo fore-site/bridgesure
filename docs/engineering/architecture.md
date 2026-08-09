@@ -29,7 +29,7 @@ evidence identifiers are recorded on-chain or in the audit store.
 Importer / Exporter wallets
           |
           v
-      Next.js web console ---- HTTPS ----> API/orchestrator
+      Next.js web app ---- HTTPS ----> API/orchestrator
                                       |
                        +--------------+--------------+
                        v              v              v

@@ -135,7 +135,7 @@ tables (`trades`, `audits`, `nonces`, `idempotency`, `releases`, `tx_hashes`, `d
 ## Commit expectations
 
 - feat(api): complete trade and audit endpoints
-- feat(web): build BridgeSure compliance console — DONE (landing page + console in `apps/web`)
+- feat(web): build the trading-party app and operator portal — DONE (landing page + app in `apps/web`)
 - test(e2e): cover successful and fail-closed milestones
 - feat(integration): add opt-in Cleanverse provisioning and smoke scripts — DONE
   (`packages/cleanverse/src/smoke.ts`, `apps/api/src/provisioning.ts`, `apps/api/scripts/`)
