@@ -62,6 +62,20 @@ const envSchema = z.object({
   BRIDGESURE_CLEANVERSE_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(400),
   BRIDGESURE_PORT: z.coerce.number().int().positive().default(4_000),
   BRIDGESURE_WEB_ORIGIN: z.string().default('http://localhost:3000'),
+  // Trade registry persistence: sqlite (default, better-sqlite3) or postgres
+  // (pg). Schema is identical across dialects; the chain stays the source of
+  // truth for balances. sqlite: BRIDGESURE_DB_FILE (':memory:' for tests).
+  // postgres: BRIDGESURE_DB_URL connection string.
+  BRIDGESURE_DB_DRIVER: z.enum(['sqlite', 'postgres']).default('sqlite'),
+  BRIDGESURE_DB_FILE: z.string().default('./data/bridgesure.sqlite'),
+  BRIDGESURE_DB_URL: z.string().optional(),
+  // Seed demo trades on boot so the registry lists / dashboard have content.
+  // (Hand-rolled boolean parse: z.coerce.boolean() maps the string "false" to
+  // true because any non-empty string is truthy — a real footgun.)
+  BRIDGESURE_SEED_DEMO_TRADES: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
+    z.boolean().default(true),
+  ),
 });
 
 export type Config = z.infer<typeof envSchema>;

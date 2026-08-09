@@ -1,13 +1,28 @@
-import type { ZodType } from 'zod';
+import { z, type ZodType } from 'zod';
 import { API_BASE_URL, OPERATOR_ROLE } from './constants';
-import type { FreezeResult, FundResult, HoldResult, TradeView } from './types';
+import type {
+  AdminOverview,
+  CreateTradeInput,
+  DisputeResult,
+  DisputeView,
+  EvidenceInput,
+  FreezeResult,
+  FundResult,
+  HoldResult,
+  TradeView,
+} from './types';
 import {
+  adminOverviewSchema,
   auditResponseSchema,
+  disputeResultSchema,
+  disputesResponseSchema,
   freezeResultSchema,
   fundResultSchema,
   holdResultSchema,
+  pendingAuthorizationSchema,
   releaseAllowedSchema,
   releaseDeniedSchema,
+  tradeViewSchema,
   tradesResponseSchema,
 } from './schemas';
 
@@ -74,7 +89,16 @@ async function request<T>(path: string, schema: ZodType<T>, init?: RequestInit):
 
 export const api = {
   getTrades: () => request('/trades', tradesResponseSchema),
+  getTrade: (tradeId: string): Promise<{ trade: TradeView }> =>
+    request(`/trades/${tradeId}`, z.object({ trade: tradeViewSchema })),
+  createTrade: (input: CreateTradeInput) =>
+    request(`/trades`, z.object({ trade: tradeViewSchema }), {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
   getAudit: (tradeId: string) => request(`/trades/${tradeId}/audit`, auditResponseSchema),
+  getPendingAuthorization: (tradeId: string) =>
+    request(`/trades/${tradeId}/authorization`, pendingAuthorizationSchema),
   fund: (tradeId: string, amount: string): Promise<FundResult> =>
     request(`/trades/${tradeId}/fund-intent`, fundResultSchema, {
       method: 'POST',
@@ -93,15 +117,51 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+  // -- disputes (resolution center) --
+  createDispute: (
+    tradeId: string,
+    reason: string,
+    requiredSignatures = 2,
+  ): Promise<DisputeResult> =>
+    request(`/trades/${tradeId}/disputes`, disputeResultSchema, {
+      method: 'POST',
+      body: JSON.stringify({ reason, requiredSignatures }),
+    }),
+  listDisputesForTrade: (tradeId: string): Promise<{ disputes: DisputeView[] }> =>
+    request(`/trades/${tradeId}/disputes`, disputesResponseSchema),
+  listAllDisputes: (): Promise<{ disputes: DisputeView[] }> =>
+    request('/disputes', disputesResponseSchema),
+  addEvidence: (disputeId: string, input: EvidenceInput): Promise<DisputeResult> =>
+    request(`/disputes/${disputeId}/evidence`, disputeResultSchema, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  signDispute: (disputeId: string, signer: string): Promise<DisputeResult> =>
+    request(`/disputes/${disputeId}/sign`, disputeResultSchema, {
+      method: 'POST',
+      body: JSON.stringify({ signer }),
+    }),
+  resolveDispute: (
+    disputeId: string,
+    resolution: 'approved' | 'rejected',
+  ): Promise<DisputeResult> =>
+    request(`/disputes/${disputeId}/resolve`, disputeResultSchema, {
+      method: 'POST',
+      body: JSON.stringify({ resolution }),
+    }),
+  // -- admin --
+  getAdminOverview: (): Promise<AdminOverview> => request('/admin/overview', adminOverviewSchema),
 };
 
 /**
- * Fetch the single demo trade. The API exposes discovery at /trades, so the
- * console never has to derive the bytes32 trade id from configuration.
+ * Fetch the single live demo trade (the configured escrow-backed one). The
+ * registry may contain synthetic demo trades; prefer the live one by escrow.
  */
 export async function fetchTrade(): Promise<TradeView> {
   const { trades } = await api.getTrades();
-  const trade = trades[0];
-  if (!trade) throw new ApiError('No trade configured on the API', 404);
-  return trade;
+  const live = trades.find((t) => t.escrow && t.escrow.toLowerCase() !== ZERO_ADDRESS) ?? trades[0];
+  if (!live) throw new ApiError('No trade configured on the API', 404);
+  return live;
 }
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';

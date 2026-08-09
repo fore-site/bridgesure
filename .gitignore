@@ -35,3 +35,6 @@ node_modules/
 investigation.md
 screenshots/
 ui.md
+
+# Local SQLite registry (apps/api runtime data)
+apps/api/data/

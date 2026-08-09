@@ -31,6 +31,9 @@ export interface Trade {
   totalAmount: bigint;
   status: TradeStatus;
   milestones: [Milestone, Milestone];
+  /** UTC ISO-8601 timestamps (persisted by the registry; used for dashboards). */
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ComplianceAttempt {

@@ -9,7 +9,7 @@ import {
   type ReleaseAuthorization,
   type Trade,
 } from '@bridgesure/domain';
-import type { Store } from './store.js';
+import type { TradeRegistry } from './db/registry.js';
 import { hashReleaseAuthorization, signDigest } from './signing.js';
 import { makeAuditRecord } from './audit.js';
 
@@ -99,23 +99,25 @@ export class ReleaseOrchestrator {
   }
 
   async release(input: {
-    store: Store;
+    registry: TradeRegistry;
     traceId: string;
     actorRole: string;
+    tradeId: string;
     milestoneId: 1 | 2;
     idempotencyKey: string;
     cleanverseRequestIds: string[];
   }): Promise<ReleaseOutcome> {
-    const { store, traceId, actorRole, milestoneId, idempotencyKey } = input;
-    const trade = store.trade;
+    const { registry, traceId, actorRole, tradeId, milestoneId, idempotencyKey } = input;
+    const trade = await registry.getTrade(tradeId);
+    if (!trade) throw new Error(`trade ${tradeId} not found`);
 
     // A completed attempt under this key returns its stored outcome (replay),
     // so retries never double-release and never consume a second nonce.
-    const prior = store.idempotencyResults.get(idempotencyKey);
+    const prior = await registry.getIdempotencyResult(idempotencyKey);
     if (prior) return prior;
 
     const opId = randomUUID();
-    const reserved = store.reserveIdempotencyKey(idempotencyKey, opId);
+    const reserved = await registry.reserveIdempotencyKey(idempotencyKey, opId);
     if (reserved === 'conflict') {
       throw new Error(`idempotency key ${idempotencyKey} reused with a different operation`);
     }
@@ -167,13 +169,13 @@ export class ReleaseOrchestrator {
         token: trade.token,
         amount: trade.milestones[milestoneId - 1]?.amount ?? 0n,
       });
-      store.appendAudit(audit);
+      await registry.appendAudit(audit);
       const outcome: ReleaseOutcome = {
         decision: 'denied',
         reasonCode: decision.reasonCode,
         auditId: audit.auditId,
       };
-      store.idempotencyResults.set(idempotencyKey, outcome);
+      await registry.setIdempotencyResult(idempotencyKey, outcome);
       return outcome;
     }
 
@@ -193,7 +195,7 @@ export class ReleaseOrchestrator {
       .digest('hex')}`;
 
     // 3. Allocate a fresh nonce and build the bounded authorization.
-    const nonce = this.nextNonce(store);
+    const nonce = await this.nextNonce(registry, trade);
     const auth: ReleaseAuthorization = {
       chainId: BigInt(this.opts.chainId),
       escrow: normalizeAddress(this.opts.escrow),
@@ -231,25 +233,25 @@ export class ReleaseOrchestrator {
         token: trade.token,
         amount: auth.amount,
       });
-      store.appendAudit(audit);
+      await registry.appendAudit(audit);
       const outcome: ReleaseOutcome = {
         decision: 'denied',
         reasonCode: binds.reasonCode,
         auditId: audit.auditId,
       };
-      store.idempotencyResults.set(idempotencyKey, outcome);
+      await registry.setIdempotencyResult(idempotencyKey, outcome);
       return outcome;
     }
 
     // 5. Consume the nonce, sign, and record the release.
-    if (!store.consumeNonce(auth)) {
+    if (!(await registry.consumeNonce(auth))) {
       throw new Error('nonce allocation failed');
     }
     const digest = hashReleaseAuthorization(this.opts.chainId, this.opts.escrow, auth);
     const signature = await signDigest(this.opts.releaseSignerPrivateKey, digest);
-    store.recordRelease(auth, signature);
+    await registry.recordRelease(trade.id, auth, signature);
     // Advance the trade state: milestone released, trade ACTIVE/COMPLETE.
-    store.trade = markMilestoneReleased(store.trade, milestoneId, evidenceDigest);
+    await registry.saveTrade(markMilestoneReleased(trade, milestoneId, evidenceDigest));
 
     const audit = makeAuditRecord({
       traceId,
@@ -268,7 +270,7 @@ export class ReleaseOrchestrator {
       amount: auth.amount,
       context: { evidenceDigest },
     });
-    store.appendAudit(audit);
+    await registry.appendAudit(audit);
 
     const outcome: ReleaseOutcome = {
       decision: 'allowed',
@@ -279,15 +281,15 @@ export class ReleaseOrchestrator {
       nonce,
       auditId: audit.auditId,
     };
-    store.idempotencyResults.set(idempotencyKey, outcome);
+    await registry.setIdempotencyResult(idempotencyKey, outcome);
     return outcome;
   }
 
-  private nextNonce(store: Store): bigint {
+  private async nextNonce(registry: TradeRegistry, trade: Trade): Promise<bigint> {
     let nonce = this.opts.noncePoolStart;
     while (
-      store.usedNonces.has([store.trade.escrow, store.trade.id, 1, nonce].join(':')) ||
-      store.usedNonces.has([store.trade.escrow, store.trade.id, 2, nonce].join(':'))
+      (await registry.nonceInUse(trade.escrow, trade.id, 1, nonce)) ||
+      (await registry.nonceInUse(trade.escrow, trade.id, 2, nonce))
     ) {
       nonce += 1n;
     }

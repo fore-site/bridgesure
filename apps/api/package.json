@@ -28,13 +28,19 @@
     "@bridgesure/cleanverse": "workspace:*",
     "@bridgesure/domain": "workspace:*",
     "@fastify/cors": "^10.0.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "0.45.2",
     "fastify": "^5.2.1",
+    "pg": "^8.22.0",
     "viem": "^2.22.17",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@bridgesure/config": "workspace:*",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.21.0",
+    "drizzle-kit": "0.31.10",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"

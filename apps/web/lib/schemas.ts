@@ -36,6 +36,50 @@ export const tradeViewSchema = z.object({
       evidenceHash: z.string().nullable(),
     }),
   ),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const evidenceSchema = z.object({
+  evidenceId: z.string(),
+  submittedBy: z.string(),
+  kind: z.enum(['bill-of-lading', 'digest', 'note']),
+  label: z.string(),
+  digest: z.string(),
+  payload: z.object({
+    fileName: z.string().optional(),
+    note: z.string().optional(),
+    submittedAt: z.string(),
+  }),
+  createdAt: z.string(),
+});
+
+export const disputeSchema = z.object({
+  disputeId: z.string(),
+  tradeId: z.string(),
+  flaggedBy: z.string(),
+  reason: z.string(),
+  status: z.enum(['OPEN', 'RESOLVED']),
+  resolution: z.enum(['approved', 'rejected']).nullable(),
+  requiredSignatures: z.number(),
+  signers: z.array(z.string()),
+  evidence: z.array(evidenceSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const disputeResultSchema = z.object({ dispute: disputeSchema });
+
+export const disputesResponseSchema = z.object({ disputes: z.array(disputeSchema) });
+
+export const adminOverviewSchema = z.object({
+  tradeCount: z.number(),
+  tvl: z.string(),
+  openDisputes: z.number(),
+  resolvedDisputes: z.number(),
+  health: z.object({ status: z.string(), checks: z.array(z.string()) }),
+  gasBudgetEstimate: z.string(),
+  trades: z.array(tradeViewSchema),
 });
 
 export const auditRecordSchema = z.object({
@@ -77,6 +121,14 @@ export const releaseAllowedSchema = z.object({
   authorization: releaseAuthorizationSchema,
   signature: z.string(),
 });
+
+/** The operator's latest signed authorization, as served for the exporter seat. */
+export const pendingAuthorizationSchema = z.object({
+  authorization: releaseAuthorizationSchema.nullable(),
+  signature: z.string().nullable(),
+});
+
+export type PendingAuthorization = z.infer<typeof pendingAuthorizationSchema>;
 
 export const releaseDeniedSchema = z.object({
   decision: z.literal('denied'),

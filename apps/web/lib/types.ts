@@ -17,6 +17,63 @@ export interface TradeView {
   totalAmount: string;
   status: TradeStatus;
   milestones: MilestoneView[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DisputeStatus = 'OPEN' | 'RESOLVED';
+export type DisputeResolution = 'approved' | 'rejected';
+
+export interface EvidenceView {
+  evidenceId: string;
+  submittedBy: string;
+  kind: 'bill-of-lading' | 'digest' | 'note';
+  label: string;
+  digest: string;
+  payload: { fileName?: string | undefined; note?: string | undefined; submittedAt: string };
+  createdAt: string;
+}
+
+export interface DisputeView {
+  disputeId: string;
+  tradeId: string;
+  flaggedBy: string;
+  reason: string;
+  status: DisputeStatus;
+  resolution: DisputeResolution | null;
+  requiredSignatures: number;
+  signers: string[];
+  evidence: EvidenceView[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminOverview {
+  tradeCount: number;
+  tvl: string;
+  openDisputes: number;
+  resolvedDisputes: number;
+  health: { status: string; checks: string[] };
+  gasBudgetEstimate: string;
+  trades: TradeView[];
+}
+
+export interface CreateTradeInput {
+  label?: string;
+  importer?: string;
+  exporter?: string;
+  escrow?: string;
+  totalAmount: string;
+  milestoneOneAmount: string;
+  milestoneTwoAmount: string;
+}
+
+export interface EvidenceInput {
+  kind: 'bill-of-lading' | 'digest' | 'note';
+  label: string;
+  digest: string;
+  note?: string;
+  fileName?: string;
 }
 
 export interface AuditRecordView {
@@ -80,4 +137,8 @@ export interface FundResult {
 export interface HoldResult {
   held: true;
   status: TradeStatus;
+}
+
+export interface DisputeResult {
+  dispute: DisputeView;
 }

@@ -6,6 +6,10 @@ allowBuilds:
   # build scripts are not needed, so explicitly deny (acknowledges the ignore).
   bufferutil: false
   utf-8-validate: false
+  # better-sqlite3 ships a prebuilt binary; allow its install script so the
+  # SQLite registry driver works without manual build steps.
+  better-sqlite3: true
 onlyBuiltDependencies:
   - esbuild
   - sharp
+  - better-sqlite3

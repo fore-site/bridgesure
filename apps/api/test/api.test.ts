@@ -33,6 +33,10 @@ function makeEnv(): NodeJS.ProcessEnv {
     BRIDGESURE_MILESTONE_ONE_AMOUNT: '400000000',
     BRIDGESURE_MILESTONE_TWO_AMOUNT: '600000000',
     BRIDGESURE_PORT: '4000',
+    // Hermetic tests: in-memory registry, no demo seeding.
+    BRIDGESURE_DB_DRIVER: 'sqlite',
+    BRIDGESURE_DB_FILE: ':memory:',
+    BRIDGESURE_SEED_DEMO_TRADES: 'false',
   };
 }
 

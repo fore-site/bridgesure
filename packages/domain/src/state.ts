@@ -20,6 +20,7 @@ export function createTrade(input: {
   totalAmount: bigint;
   milestoneOneAmount: bigint;
   milestoneTwoAmount: bigint;
+  createdAt?: string; // UTC ISO-8601; defaults to now (registry persists this)
 }): Trade {
   if (input.totalAmount !== input.milestoneOneAmount + input.milestoneTwoAmount) {
     throw new Error('milestone amounts must sum to the trade total');
@@ -30,6 +31,7 @@ export function createTrade(input: {
     status: 'PENDING',
     evidenceHash: null,
   });
+  const createdAt = input.createdAt ?? new Date().toISOString();
   return {
     id: input.id,
     chainId: input.chainId,
@@ -40,7 +42,13 @@ export function createTrade(input: {
     totalAmount: input.totalAmount,
     status: 'DRAFT',
     milestones: [milestone(1, input.milestoneOneAmount), milestone(2, input.milestoneTwoAmount)],
+    createdAt,
+    updatedAt: createdAt,
   };
+}
+
+export function touch(trade: Trade): Trade {
+  return { ...trade, updatedAt: new Date().toISOString() };
 }
 
 export function normalizeAddress(address: string): string {
@@ -53,7 +61,7 @@ export function isCvaFunding(trade: Trade, token: string, amount: bigint): boole
 
 export function markFunded(trade: Trade): Trade {
   if (trade.status !== 'DRAFT') return trade;
-  return { ...trade, status: 'FUNDED' };
+  return touch({ ...trade, status: 'FUNDED' });
 }
 
 /**
@@ -104,16 +112,16 @@ export function markMilestoneReleased(
   ];
   const status: TradeStatus =
     milestoneId === 2 ? 'COMPLETE' : trade.status === 'FUNDED' ? 'ACTIVE' : trade.status;
-  return { ...trade, milestones, status };
+  return touch({ ...trade, milestones, status });
 }
 
 export function enterHold(trade: Trade): Trade {
   if (trade.status !== 'FUNDED' && trade.status !== 'ACTIVE') return trade;
-  return { ...trade, status: 'HOLD' };
+  return touch({ ...trade, status: 'HOLD' });
 }
 
 export function refund(trade: Trade): Trade {
-  return { ...trade, status: 'REFUNDED' };
+  return touch({ ...trade, status: 'REFUNDED' });
 }
 
 export function releasedAmount(trade: Trade): bigint {

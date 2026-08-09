@@ -1,9 +1,10 @@
 import { defineChain, getAddress, isHex, parseAbi, type Address } from 'viem';
-import { createConfig, http } from 'wagmi';
+import { createConfig, http, type Config } from 'wagmi';
 // Import the injected connector from its subpath (not `wagmi/connectors`):
 // the umbrella index re-exports tempoWallet, whose tempo module fails to
 // resolve under webpack in the current wagmi release.
 import { injected } from '@wagmi/connectors/injected';
+import { walletConnect } from '@wagmi/connectors/walletConnect';
 
 /**
  * Monad Testnet chain definition, wagmi config, and the minimal ABIs the
@@ -23,9 +24,20 @@ export const monadTestnet = defineChain({
   testnet: true,
 });
 
-export const wagmiConfig = createConfig({
+/**
+ * Browser extensions (MetaMask et al.) always available. WalletConnect is
+ * included only when a project id is configured (NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID)
+ * — the WalletConnect Cloud relay requires one. Without it the unified modal
+ * simply offers the injected connectors.
+ */
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+
+export const wagmiConfig: Config = createConfig({
   chains: [monadTestnet],
-  connectors: [injected()],
+  connectors: [
+    injected(),
+    ...(projectId ? [walletConnect({ projectId, showQrModal: false })] : []),
+  ],
   transports: { [monadTestnet.id]: http() },
 });
 
