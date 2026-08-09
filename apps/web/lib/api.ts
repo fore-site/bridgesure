@@ -2,6 +2,8 @@ import { z, type ZodType } from 'zod';
 import { API_BASE_URL, OPERATOR_ROLE } from './constants';
 import type {
   AdminOverview,
+  AuthChallenge,
+  AuthVerifyResult,
   CreateTradeInput,
   DisputeResult,
   DisputeView,
@@ -14,6 +16,8 @@ import type {
 import {
   adminOverviewSchema,
   auditResponseSchema,
+  authChallengeSchema,
+  authVerifySchema,
   disputeResultSchema,
   disputesResponseSchema,
   freezeResultSchema,
@@ -49,12 +53,18 @@ function parseErrorBody(body: unknown): { error?: string; reasonCode?: string } 
   return out;
 }
 
-async function request<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  schema: ZodType<T>,
+  init?: RequestInit,
+  token?: string,
+): Promise<T> {
   const headers = new Headers(init?.headers);
   // Only body-carrying requests send JSON content-type; a body-less POST with
   // content-type: application/json is rejected by Fastify with a 400.
   if (init?.body !== undefined) headers.set('content-type', 'application/json');
   headers.set('x-operator-role', OPERATOR_ROLE);
+  if (token !== undefined) headers.set('authorization', `Bearer ${token}`);
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -97,8 +107,19 @@ export const api = {
       body: JSON.stringify(input),
     }),
   getAudit: (tradeId: string) => request(`/trades/${tradeId}/audit`, auditResponseSchema),
-  getPendingAuthorization: (tradeId: string) =>
-    request(`/trades/${tradeId}/authorization`, pendingAuthorizationSchema),
+  getAuthChallenge: (tradeId: string): Promise<AuthChallenge> =>
+    request(`/trades/${tradeId}/auth/challenge`, authChallengeSchema, { method: 'POST' }),
+  verifyAuth: (
+    tradeId: string,
+    challengeId: string,
+    signature: string,
+  ): Promise<AuthVerifyResult> =>
+    request(`/trades/${tradeId}/auth/verify`, authVerifySchema, {
+      method: 'POST',
+      body: JSON.stringify({ challengeId, signature }),
+    }),
+  getPendingAuthorization: (tradeId: string, token: string) =>
+    request(`/trades/${tradeId}/authorization`, pendingAuthorizationSchema, undefined, token),
   fund: (tradeId: string, amount: string): Promise<FundResult> =>
     request(`/trades/${tradeId}/fund-intent`, fundResultSchema, {
       method: 'POST',

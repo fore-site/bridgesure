@@ -155,6 +155,20 @@ export const holdResultSchema = z.object({
 
 export const tradesResponseSchema = z.object({ trades: z.array(tradeViewSchema) });
 
+/** Wallet-proof: one-time signing challenge for a trade. */
+export const authChallengeSchema = z.object({
+  challengeId: z.string(),
+  message: z.string(),
+  expiresAt: z.number(),
+});
+
+/** Wallet-proof: bearer token issued after a party verifies a challenge. */
+export const authVerifySchema = z.object({
+  token: z.string(),
+  expiresAt: z.number(),
+  address: z.string(),
+});
+
 export const auditResponseSchema = z.object({
   tradeId: z.string(),
   records: z.array(auditRecordSchema),

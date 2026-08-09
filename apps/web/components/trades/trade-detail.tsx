@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowClockwiseIcon,
@@ -14,7 +14,7 @@ import {
   WalletIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
-import { useConnection } from 'wagmi';
+import { useConnection, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/lib/api';
 import type { AuditRecordView, DisputeView, ReleaseAllowed, TradeView } from '@/lib/types';
 import { CHAIN } from '@/lib/constants';
@@ -39,23 +39,78 @@ import { OracleBadge } from './oracle-badge';
 export function TradeDetail({ tradeId }: { tradeId: string }) {
   const { open } = useWalletModal();
   const { address, isConnected } = useConnection();
+  const { mutateAsync: signMessageAsync } = useSignMessage();
 
   const [trade, setTrade] = useState<TradeView | null>(null);
   const [audit, setAudit] = useState<AuditRecordView[]>([]);
   const [disputes, setDisputes] = useState<DisputeView[]>([]);
   const [pendingAuth, setPendingAuth] = useState<ReleaseAllowed | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const provingRef = useRef(false);
+  // Why the last proof attempt failed: 'denied' (non-party or declined
+  // signature) is permanent — retrying would only re-prompt the wallet;
+  // 'transient' (network blip) is retried on the next poll cycle.
+  const proofFailRef = useRef<'denied' | 'transient' | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Wallet-proof: prove party membership once per connected wallet, then poll
+  // the operator's signed authorization with the issued bearer token. The API
+  // refuses to serve the payload to anyone who is not the trade's importer or
+  // exporter, so a bystander with the trade id now gets a 401.
+  const proveMembership = useCallback(async () => {
+    if (!isConnected || !address || provingRef.current) return;
+    provingRef.current = true;
+    try {
+      const challenge = await api.getAuthChallenge(tradeId);
+      const signature = await signMessageAsync({ message: challenge.message });
+      const verified = await api.verifyAuth(tradeId, challenge.challengeId, signature);
+      proofFailRef.current = null;
+      setAuthToken(verified.token);
+    } catch (err: unknown) {
+      // Non-party (403) and declined signatures (4001) are permanent; anything
+      // else is transient and retried by the next poll.
+      const permanent = (err instanceof ApiError && err.status === 403) || isRejectedSignature(err);
+      proofFailRef.current = permanent ? 'denied' : 'transient';
+      setAuthToken(null);
+    } finally {
+      provingRef.current = false;
+    }
+  }, [tradeId, isConnected, address, signMessageAsync]);
+
+  useEffect(() => {
+    void proveMembership();
+  }, [proveMembership]);
+
+  // A disconnected visitor holds no token; a switched wallet re-proves.
+  useEffect(() => {
+    if (!isConnected) setAuthToken(null);
+  }, [isConnected]);
+
   const refresh = useCallback(async () => {
     try {
+      // Self-heal a transient proof failure (e.g. the API was briefly down
+      // when the seat connected) on the next poll cycle; permanent denials
+      // are never retried.
+      if (authToken === null && proofFailRef.current === 'transient') {
+        void proveMembership();
+      }
+      const authPromise =
+        authToken !== null
+          ? api.getPendingAuthorization(tradeId, authToken).catch((err: unknown) => {
+              if (err instanceof ApiError && err.status === 401) {
+                // Token expired or server restarted — re-prove and continue.
+                setAuthToken(null);
+                void proveMembership();
+              }
+              return { authorization: null, signature: null };
+            })
+          : Promise.resolve({ authorization: null, signature: null });
       const [tradeRes, auditRes, disputeRes, authRes] = await Promise.all([
         api.getTrade(tradeId),
         api.getAudit(tradeId),
         api.listDisputesForTrade(tradeId),
-        api
-          .getPendingAuthorization(tradeId)
-          .catch(() => ({ authorization: null, signature: null })),
+        authPromise,
       ]);
       setTrade(tradeRes.trade);
       setAudit(auditRes.records);
@@ -76,7 +131,7 @@ export function TradeDetail({ tradeId }: { tradeId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [tradeId]);
+  }, [tradeId, authToken, proveMembership]);
 
   useEffect(() => {
     void refresh();
@@ -404,4 +459,9 @@ function PartyNote({ role, text }: { role: string; text: string }) {
       </div>
     </div>
   );
+}
+
+/** EIP-1193 user rejection (code 4001) — treat as permanent, not transient. */
+function isRejectedSignature(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && err.code === 4001;
 }

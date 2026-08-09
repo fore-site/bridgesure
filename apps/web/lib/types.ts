@@ -142,3 +142,15 @@ export interface HoldResult {
 export interface DisputeResult {
   dispute: DisputeView;
 }
+
+export interface AuthChallenge {
+  challengeId: string;
+  message: string;
+  expiresAt: number;
+}
+
+export interface AuthVerifyResult {
+  token: string;
+  expiresAt: number;
+  address: string;
+}

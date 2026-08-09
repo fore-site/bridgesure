@@ -17,6 +17,7 @@ import { createRegistry } from './db/factory.js';
 import type { TradeRegistry } from './db/registry.js';
 import { ReleaseOrchestrator, type ReleaseOutcome } from './orchestrator.js';
 import { makeAuditRecord } from './audit.js';
+import { createWalletAuth } from './wallet-auth.js';
 
 const releaseBodySchema = z.object({
   milestoneId: z.union([z.literal(1), z.literal(2)]),
@@ -73,6 +74,11 @@ const signDisputeBodySchema = z.object({
   signer: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
 });
 
+const verifyAuthBodySchema = z.object({
+  challengeId: z.string().min(1).max(128),
+  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'signature must be a hex string'),
+});
+
 const resolveDisputeBodySchema = z.object({
   resolution: z.enum(['approved', 'rejected']),
 });
@@ -94,6 +100,11 @@ export function buildServer(deps: {
   const tradeId = keccak256(toHex(config.BRIDGESURE_TRADE_ID));
 
   const registry = deps.registry ?? createRegistry(config);
+
+  // Wallet-proof gate for the party-facing authorization endpoint: the
+  // exporter (or importer) proves membership by signing a challenge, and only
+  // a valid bearer token unlocks the signed release payload.
+  const walletAuth = createWalletAuth();
 
   const orchestrator = new ReleaseOrchestrator({
     chain: config.BRIDGESURE_CHAIN,
@@ -377,21 +388,79 @@ export function buildServer(deps: {
     };
   });
 
+  // -------------------------------------------------------------------------
+  // Party proof (wallet challenge) — gates the release authorization
+  // -------------------------------------------------------------------------
+
+  /**
+   * Issue a one-time signing challenge for a trade. The challenge itself is
+   * inert (anyone may request one); the signature over it only buys a bearer
+   * token for the actual parties.
+   */
+  app.post<{ Params: { id: string } }>('/trades/:id/auth/challenge', async (request, reply) => {
+    const { id } = request.params;
+    const trade = await registry.getTrade(id);
+    if (!trade) return reply.code(404).send({ error: 'trade not found' });
+    return walletAuth.createChallenge(id);
+  });
+
+  /**
+   * Verify a wallet signature over the challenge and, if the signer is the
+   * trade's importer or exporter, issue a short-lived bearer token scoped to
+   * that trade. The challenge is single-use, so a captured signature cannot
+   * be replayed to mint tokens.
+   */
+  app.post<{ Params: { id: string }; Body: { challengeId?: string; signature?: string } }>(
+    '/trades/:id/auth/verify',
+    async (request, reply) => {
+      const { id } = request.params;
+      const trade = await registry.getTrade(id);
+      if (!trade) return reply.code(404).send({ error: 'trade not found' });
+      const parsed = verifyAuthBodySchema.safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: 'invalid verification payload' });
+      const result = await walletAuth.verify({
+        challengeId: parsed.data.challengeId,
+        signature: parsed.data.signature,
+        tradeId: id,
+        importer: trade.importer,
+        exporter: trade.exporter,
+      });
+      if (!result.ok) {
+        const status =
+          result.reason === 'not-a-party'
+            ? 403
+            : result.reason === 'signature-invalid'
+              ? 401
+              : result.reason === 'challenge-expired'
+                ? 410
+                : 404;
+        return reply.code(status).send({ error: result.reason });
+      }
+      return { token: result.token, expiresAt: result.expiresAt, address: result.address };
+    },
+  );
+
   /**
    * Latest signed authorization issued by the operator for this trade (if
    * still within its expiry window and not yet submitted on-chain). The
    * exporter seat polls this from the shared trade view so the claim flow
    * works across the admin portal (/admin) and the party-facing route.
    *
-   * Demo boundary: served to any caller — the payout is bound to the trade's
-   * exporter address and the on-chain escrow re-verifies the signature,
-   * parties, expiry and single-use nonce, so exposing the payload is not a
-   * fund-loss vector. Production would authenticate the exporter seat.
+   * Party-gated: the caller must present a bearer token minted by
+   * /auth/verify, which requires a wallet signature from the trade's
+   * importer or exporter. Bystanders with the trade id get a 401. The payout
+   * remains bound to the trade's exporter address on-chain regardless.
    */
   app.get<{ Params: { id: string } }>('/trades/:id/authorization', async (request, reply) => {
     const { id } = request.params;
     const trade = await registry.getTrade(id);
     if (!trade) return reply.code(404).send({ error: 'trade not found' });
+    const token = bearerToken(request.headers.authorization);
+    if (!walletAuth.isAuthorized(token, id)) {
+      return reply
+        .code(401)
+        .send({ error: 'party proof required — request a challenge and verify with your wallet' });
+    }
     // listReleases returns newest-first (created_at DESC).
     const releases = await registry.listReleases(id);
     const latest = releases[0];
@@ -590,6 +659,13 @@ function signerPrivateKey(value: string): Hex {
 
 function randomTraceId(): string {
   return `trace-${randomUUID()}`;
+}
+
+/** Extract the token from an `Authorization: Bearer <token>` header. */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  return match?.[1] ?? null;
 }
 
 function hashReason(reason: string): string {

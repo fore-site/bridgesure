@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { keccak256, toHex } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { MockCleanverseClient } from '@bridgesure/cleanverse/mocks';
 import { buildServer } from '../src/server.js';
 
-const IMPORTER = '0x4aa29d0188d81A39cBd2BF11C1791aF3fF294E3A';
-const EXPORTER = '0xaABb93dA3999765dD48a40d70054190AE3361506';
-const ADMIN = '0x13cd068321C624d63C4A1d0eA2eBd806c22B9FA7';
+// Key-derived accounts so tests can sign wallet-proof challenges.
+const IMPORTER_ACCOUNT = privateKeyToAccount(`0x${'11'.repeat(32)}`);
+const EXPORTER_ACCOUNT = privateKeyToAccount(`0x${'22'.repeat(32)}`);
+const ADMIN_ACCOUNT = privateKeyToAccount(`0x${'44'.repeat(32)}`);
+const IMPORTER = IMPORTER_ACCOUNT.address;
+const EXPORTER = EXPORTER_ACCOUNT.address;
+const ADMIN = ADMIN_ACCOUNT.address;
 const ATOKEN = '0xaC0893567D43C3E7e6e35a72803df05416C1f20D';
 const VALIDATOR = '0xaC7e5179C2C7f03f209136886c172eb34F161792';
 const SIGNER_KEY = `0x${'33'.repeat(32)}`;
@@ -54,6 +59,31 @@ describe('trade registry (multi-trade + disputes)', () => {
 
   function operatorHeaders(role = 'issue-member'): Record<string, string> {
     return { 'x-operator-role': role };
+  }
+
+  /** Full wallet-proof flow: challenge → sign → verify → bearer token. */
+  async function partyToken(
+    account: typeof IMPORTER_ACCOUNT,
+    tradeId: string = TRADE_ID,
+  ): Promise<string> {
+    const challenge = await app.inject({
+      method: 'POST',
+      url: `/trades/${tradeId}/auth/challenge`,
+    });
+    expect(challenge.statusCode).toBe(200);
+    const body = challenge.json() as { challengeId: string; message: string };
+    const signature = await account.signMessage({ message: body.message });
+    const verify = await app.inject({
+      method: 'POST',
+      url: `/trades/${tradeId}/auth/verify`,
+      payload: { challengeId: body.challengeId, signature },
+    });
+    expect(verify.statusCode).toBe(200);
+    return (verify.json() as { token: string }).token;
+  }
+
+  function authedGet(path: string, token: string) {
+    return app.inject({ method: 'GET', url: path, headers: { authorization: `Bearer ${token}` } });
   }
 
   it('REG-1: registry persists the configured trade and survives get/list round-trips', async () => {
@@ -253,10 +283,14 @@ describe('trade registry (multi-trade + disputes)', () => {
     expect(again.statusCode).toBe(409);
   });
 
-  it('REL-1: authorization endpoint is empty before any release', async () => {
+  it('REL-1: authorization requires a party proof — 401 without a token', async () => {
     const res = await app.inject({ method: 'GET', url: `/trades/${TRADE_ID}/authorization` });
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ authorization: null, signature: null });
+    expect(res.statusCode).toBe(401);
+
+    const token = await partyToken(EXPORTER_ACCOUNT);
+    const authed = await authedGet(`/trades/${TRADE_ID}/authorization`, token);
+    expect(authed.statusCode).toBe(200);
+    expect(authed.json()).toEqual({ authorization: null, signature: null });
   });
 
   it('REL-2: after an operator release, the exporter seat sees the signed authorization', async () => {
@@ -293,7 +327,8 @@ describe('trade registry (multi-trade + disputes)', () => {
     };
     expect(allowed.decision).toBe('allowed');
 
-    const auth = await app.inject({ method: 'GET', url: `/trades/${TRADE_ID}/authorization` });
+    const token = await partyToken(EXPORTER_ACCOUNT);
+    const auth = await authedGet(`/trades/${TRADE_ID}/authorization`, token);
     expect(auth.statusCode).toBe(200);
     const body = auth.json() as {
       authorization: { milestoneId: number; nonce: string; expiry: number };
@@ -333,16 +368,91 @@ describe('trade registry (multi-trade + disputes)', () => {
     expect(release.statusCode).toBe(200);
 
     // Immediately visible…
-    const fresh = await app.inject({ method: 'GET', url: `/trades/${TRADE_ID}/authorization` });
+    const token = await partyToken(EXPORTER_ACCOUNT);
+    const fresh = await authedGet(`/trades/${TRADE_ID}/authorization`, token);
     expect(fresh.json().authorization).not.toBeNull();
 
     // …and gone after the window lapses (3200ms covers the 2s window plus
     // the integer-second floor in the expiry comparison).
     await new Promise((resolve) => setTimeout(resolve, 3200));
-    const stale = await app.inject({ method: 'GET', url: `/trades/${TRADE_ID}/authorization` });
+    const stale = await authedGet(`/trades/${TRADE_ID}/authorization`, token);
     expect(stale.statusCode).toBe(200);
     expect(stale.json().authorization).toBeNull();
     expect(stale.json().signature).toBeNull();
+  });
+
+  it('AUTH-1: a non-party wallet is refused at verify (403)', async () => {
+    const challenge = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/challenge`,
+    });
+    const body = challenge.json() as { challengeId: string; message: string };
+    const signature = await ADMIN_ACCOUNT.signMessage({ message: body.message });
+    const verify = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/verify`,
+      payload: { challengeId: body.challengeId, signature },
+    });
+    expect(verify.statusCode).toBe(403);
+    expect(verify.json()).toEqual({ error: 'not-a-party' });
+  });
+
+  it('AUTH-2: a garbage signature is rejected (401)', async () => {
+    const challenge = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/challenge`,
+    });
+    const body = challenge.json() as { challengeId: string };
+    const verify = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/verify`,
+      payload: { challengeId: body.challengeId, signature: `0x${'00'.repeat(65)}` },
+    });
+    expect(verify.statusCode).toBe(401);
+  });
+
+  it('AUTH-3: a challenge is single-use — replay is rejected', async () => {
+    const challenge = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/challenge`,
+    });
+    const body = challenge.json() as { challengeId: string; message: string };
+    const signature = await EXPORTER_ACCOUNT.signMessage({ message: body.message });
+
+    const first = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/verify`,
+      payload: { challengeId: body.challengeId, signature },
+    });
+    expect(first.statusCode).toBe(200);
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/auth/verify`,
+      payload: { challengeId: body.challengeId, signature },
+    });
+    expect(replay.statusCode).toBe(404);
+    expect(replay.json()).toEqual({ error: 'challenge-unknown' });
+  });
+
+  it('AUTH-4: a bearer token is scoped to its trade', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/trades',
+      headers: operatorHeaders(),
+      payload: {
+        label: 'bridgesure-trade-auth-002',
+        totalAmount: '1000000',
+        milestoneOneAmount: '400000',
+        milestoneTwoAmount: '600000',
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const other = (created.json().trade as { id: string }).id;
+
+    const token = await partyToken(EXPORTER_ACCOUNT, TRADE_ID);
+    const res = await authedGet(`/trades/${other}/authorization`, token);
+    expect(res.statusCode).toBe(401);
   });
 
   it('ADM-1: admin overview reports trade count, TVL, and dispute counts', async () => {
