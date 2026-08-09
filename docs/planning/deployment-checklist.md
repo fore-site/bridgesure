@@ -46,6 +46,23 @@ and docs/runbooks/demo.md). Read-only checks run by default.
       prudent re-check before deployment).
 - [ ] Confirm `BRIDGESURE_*` values in `.env` match `.env.example` (no secrets committed).
 
+### Registry persistence (verified 2026-08-09 — Supabase)
+
+The trade registry is fully env-driven — nothing is hardcoded. The API runs on a Supabase
+Postgres pooler: `DATABASE_URL` is set in `.env` (never committed), which auto-selects the
+postgres driver; TLS is auto-enabled for `*.supabase.co`/`*.supabase.com` hosts. All eight
+tables (`trades`, `audits`, `nonces`, `idempotency`, `releases`, `tx_hashes`, `disputes`,
+`evidence`) are created idempotently on first boot; verified live against
+`aws-1-eu-west-3.pooler.supabase.com` with 3 trades seeded.
+
+- Connection string: `DATABASE_URL` or `BRIDGESURE_DB_URL`; `BRIDGESURE_DB_DRIVER` overrides
+  inference; `BRIDGESURE_DB_SSL` forces TLS on/off; SQLite fallback is `BRIDGESURE_DB_FILE`.
+- Supabase caveats: use the transaction pooler (port 6543) or direct (5432) string from
+  Project Settings → Database; queries are parameterized (no named prepared statements), so
+  both work. The chain remains the source of truth for balances — the DB is the index.
+- Ops note: don't `source .env` in a shell — connection-string passwords can contain
+  characters the shell mis-parses; the app loads `.env` itself (quotes handled).
+
 ### Contract deployment (writes)
 
 - [x] `pnpm deploy:escrow --confirm` implemented (`apps/api/scripts/deploy-escrow.ts`): builds

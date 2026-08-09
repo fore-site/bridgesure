@@ -8,14 +8,28 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 1. Copy `.env.example` to an ignored `.env` and generate a demo-only
    `BRIDGESURE_RELEASE_SIGNER_PRIVATE_KEY` (`cast wallet new` or `openssl rand -hex 32`
    prefixed with `0x`). Keep `BRIDGESURE_CLEANVERSE_MODE=demo` (the default).
-2. Run `pnpm dev` from the repo root: the API boots on :4000 with a scripted sandbox mock and
+2. (Optional but recommended) Point the trade registry at a Postgres database with a
+   connection string — e.g. Supabase:
+
+   ```
+   DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+   ```
+
+   Providing a connection string auto-selects the postgres driver (TLS is enabled
+   automatically for Supabase hosts); leave it unset to use the local SQLite fallback
+   (`BRIDGESURE_DB_FILE`, default `./data/bridgesure.sqlite`). Tables are created on first
+   boot. The registry is an index — the chain stays the source of truth for balances.
+
+3. Run `pnpm dev` from the repo root: the API boots on :4000 with a scripted sandbox mock and
    the web app on :3000.
-3. Open http://localhost:3000 — the landing page explains the product; "Open console" starts
+4. Open http://localhost:3000 — the landing page explains the product; "Open console" starts
    the demo.
-4. In the console: **Fund escrow**, then **Release milestone one** (fresh checks pass, bounded
+5. In the console: **Fund escrow**, then **Release milestone one** (fresh checks pass, bounded
    authorization signed), then **Freeze exporter credential** (confirm), then **Release
    milestone two** — it fails closed with `APASS_NOT_VALID`, the milestone card and audit feed
    show the reason, and the balances are unchanged. **Export** downloads the audit packet.
+   Trades, audit trails, disputes and evidence persist in the configured registry across
+   restarts.
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 
