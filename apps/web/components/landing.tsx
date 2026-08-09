@@ -16,7 +16,7 @@ import {
   ShieldSlashIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { BridgeSureMark, BridgeSureWordmark, CleanverseLockup, CleanverseMark } from './brand';
+import { BridgeSureMark } from './brand';
 import { Chip, Reveal, SectionHeading } from './ui';
 
 /* ================= Nav ================= */
@@ -30,11 +30,11 @@ const NAV_LINKS = [
 function Nav() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="glass sticky top-0 z-50">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+    <header className="glass-light sticky top-0 z-50">
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2.5" aria-label="BridgeSure home">
           <BridgeSureMark className="h-7 w-7" />
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-white">
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
             BridgeSure
           </span>
         </Link>
@@ -44,7 +44,7 @@ function Nav() {
             <a
               key={link.href}
               href={link.href}
-              className="rounded-lg px-3 py-2 text-sm text-mist-400 transition hover:bg-white/[0.04] hover:text-white"
+              className="rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
             >
               {link.label}
             </a>
@@ -52,7 +52,7 @@ function Nav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <span className="hidden items-center gap-2 rounded-full border border-white/[0.08] px-3 py-1 text-[11px] text-mist-400 lg:inline-flex">
+          <span className="hidden items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] text-slate-600 lg:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-ok-400 pulse-soft" />
             Monad Testnet
           </span>
@@ -71,12 +71,12 @@ function Nav() {
             setOpen((v) => !v);
           }}
         >
-          {open ? <XIcon size={20} /> : <span className="text-sm">Menu</span>}
+          {open ? <XIcon size={20} /> : <span className="text-sm text-slate-700">Menu</span>}
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-white/[0.06] px-6 py-4 md:hidden">
+        <div className="border-t border-slate-200 px-6 py-4 md:hidden">
           <nav className="flex flex-col gap-1" aria-label="Mobile">
             {NAV_LINKS.map((link) => (
               <a
@@ -85,7 +85,7 @@ function Nav() {
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="rounded-lg px-3 py-2.5 text-sm text-mist-300 transition hover:bg-white/[0.04] hover:text-white"
+                className="rounded-lg px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
               >
                 {link.label}
               </a>
@@ -121,7 +121,7 @@ function MilestoneRow({
 }) {
   const ok = state === 'released';
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-ink-900/70 px-3.5 py-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-white/[0.03] px-3.5 py-2.5">
       <div className="flex items-center gap-2.5">
         <span
           className={`flex h-5 w-5 items-center justify-center rounded-full ${
@@ -212,10 +212,8 @@ function DecisionCard() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="hero-glow absolute inset-0" aria-hidden="true" />
-      <div className="bg-grid absolute inset-0" aria-hidden="true" />
-      <div className="relative mx-auto max-w-6xl px-6 pb-24 pt-20 md:pb-32 md:pt-28">
+    <section className="relative">
+      <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pb-24 pt-20 md:pb-32 md:pt-24">
         <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <Reveal>
@@ -224,13 +222,13 @@ function Hero() {
               </Chip>
             </Reveal>
             <Reveal delay={0.05}>
-              <h1 className="text-balance text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] text-white md:text-6xl lg:text-[4.1rem]">
+              <h1 className="text-balance text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] text-slate-900 md:text-6xl lg:text-[4.1rem]">
                 Milestone payments move only after{' '}
-                <span className="text-gradient">fresh compliance checks</span>.
+                <span className="text-accent">fresh compliance checks</span>.
               </h1>
             </Reveal>
             <Reveal delay={0.12}>
-              <p className="mt-6 max-w-xl text-balance text-[16.5px] leading-relaxed text-mist-400">
+              <p className="mt-6 max-w-xl text-balance text-[16.5px] leading-relaxed text-slate-600">
                 BridgeSure settles cross-border trade in an aUSDC escrow on Monad. Before every
                 milestone release, both parties are re-verified through Cleanverse A-Pass and
                 validator checks — in the same attempt, seconds before funds move. When a credential
@@ -239,23 +237,23 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/dashboard" className="btn-primary px-5 py-3 text-[15px]">
+                <Link href="/dashboard" className="btn-hero">
                   Open the app
                   <ArrowRightIcon size={16} weight="bold" />
                 </Link>
-                <a href="#how-it-works" className="btn-secondary px-5 py-3 text-[15px]">
+                <a href="#how-it-works" className="btn-secondary-light px-5 py-3 text-[15px]">
                   See how it works
                 </a>
               </div>
             </Reveal>
             <Reveal delay={0.28}>
               <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">
-                <div className="flex items-center gap-2 text-[12.5px] text-mist-500">
-                  <FingerprintIcon size={15} className="text-mist-400" />
+                <div className="flex items-center gap-2 text-[12.5px] text-slate-500">
+                  <FingerprintIcon size={15} className="text-slate-400" />
                   A-Pass re-checked per release
                 </div>
-                <div className="flex items-center gap-2 text-[12.5px] text-mist-500">
-                  <DownloadSimpleIcon size={15} className="text-mist-400" />
+                <div className="flex items-center gap-2 text-[12.5px] text-slate-500">
+                  <DownloadSimpleIcon size={15} className="text-slate-400" />
                   Travel Rule evidence export
                 </div>
               </div>
@@ -263,10 +261,6 @@ function Hero() {
           </div>
 
           <Reveal delay={0.15} className="relative">
-            <div
-              className="absolute -inset-6 rounded-[24px] bg-bridge-500/[0.06] blur-2xl"
-              aria-hidden="true"
-            />
             <div className="relative">
               <DecisionCard />
             </div>
@@ -281,23 +275,23 @@ function Hero() {
 
 function TrustStrip() {
   return (
-    <section className="border-y border-white/[0.06]">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-10 gap-y-4 px-6 py-6">
+    <section className="border-y border-slate-200 bg-white/60">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-10 gap-y-4 px-6 py-6">
         <span className="label">Built on</span>
         <div className="flex items-center gap-2.5">
-          <span className="font-mono text-sm font-semibold tracking-tight text-mist-300">
+          <span className="font-mono text-sm font-semibold tracking-tight text-slate-800">
             MONAD
           </span>
-          <span className="text-[11px] text-mist-500">chain 10143</span>
+          <span className="text-[11px] text-slate-500">chain 10143</span>
         </div>
-        <CleanverseLockup className="h-4" />
-        <div className="flex items-center gap-2 text-[13px] text-mist-400">
-          <CoinsIcon size={15} className="text-bridge-400" />
+        <img src="/brand/cleanverse-logo-black.svg" alt="Cleanverse" className="h-4" />
+        <div className="flex items-center gap-2 text-[13px] text-slate-600">
+          <CoinsIcon size={15} className="text-bridge-500" />
           <span className="font-mono">aUSDC</span>
-          <span className="text-mist-500">CVA</span>
+          <span className="text-slate-500">CVA</span>
         </div>
-        <div className="flex items-center gap-2 text-[13px] text-mist-400">
-          <ShieldCheckIcon size={15} className="text-bridge-400" />
+        <div className="flex items-center gap-2 text-[13px] text-slate-600">
+          <ShieldCheckIcon size={15} className="text-bridge-500" />
           <span className="font-mono">IAPassComplianceValidator</span>
         </div>
       </div>
@@ -327,13 +321,14 @@ const PROBLEMS = [
 
 function Problem() {
   return (
-    <section id="product" className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+    <section id="product" className="mx-auto max-w-[1440px] px-6 py-24 md:py-32">
       <SectionHeading
+        light
         eyebrow="The problem"
         title={
           <>
             Compliance checked at onboarding is{' '}
-            <span className="text-mist-300">already out of date</span>.
+            <span className="text-slate-500">already out of date</span>.
           </>
         }
         sub="Most escrows treat verification as a one-time gate: verify once at the door, then automate the payments. That is exactly the failure mode regulators distrust."
@@ -341,12 +336,12 @@ function Problem() {
       <div className="mt-12 grid gap-4 md:grid-cols-3">
         {PROBLEMS.map((p, i) => (
           <Reveal key={p.title} delay={i * 0.08}>
-            <div className="panel group h-full p-6 transition hover:border-white/[0.14]">
-              <p.icon size={22} className="text-bridge-400" weight="duotone" />
-              <h3 className="mt-5 text-[15.5px] font-semibold tracking-[-0.01em] text-white">
+            <div className="panel-light group h-full p-6 transition hover:border-slate-300">
+              <p.icon size={22} className="text-bridge-500" weight="duotone" />
+              <h3 className="mt-5 text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
                 {p.title}
               </h3>
-              <p className="mt-2.5 text-[13.5px] leading-relaxed text-mist-400">{p.body}</p>
+              <p className="mt-2.5 text-[13.5px] leading-relaxed text-slate-600">{p.body}</p>
             </div>
           </Reveal>
         ))}
@@ -380,14 +375,15 @@ const PRIMITIVES = [
 
 function Mechanism() {
   return (
-    <section id="mechanism" className="border-t border-white/[0.06] bg-ink-900/40">
-      <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+    <section id="mechanism" className="border-t border-slate-200 bg-slate-50/70">
+      <div className="mx-auto max-w-[1440px] px-6 py-24 md:py-32">
         <SectionHeading
+          light
           eyebrow="The mechanism"
           title={
             <>
               Three Cleanverse primitives, wired into{' '}
-              <span className="text-gradient">value-moving logic</span>.
+              <span className="text-accent">value-moving logic</span>.
             </>
           }
           sub="Not a UI flag. A revocation anywhere in the flow changes what the escrow will actually do next — because the checks run inside the release path itself."
@@ -395,19 +391,15 @@ function Mechanism() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {PRIMITIVES.map((p, i) => (
             <Reveal key={p.title} delay={i * 0.08}>
-              <div className="panel group relative h-full overflow-hidden p-6 transition hover:border-white/[0.14]">
-                <div
-                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-bridge-400/40 to-transparent opacity-0 transition group-hover:opacity-100"
-                  aria-hidden="true"
-                />
+              <div className="panel-light group relative h-full overflow-hidden p-6 transition hover:border-slate-300">
                 <div className="flex items-center justify-between">
-                  <p.icon size={24} className="text-bridge-400" weight="duotone" />
+                  <p.icon size={24} className="text-bridge-600" weight="duotone" />
                   <span className="label">{p.tag}</span>
                 </div>
-                <h3 className="mt-5 text-[15.5px] font-semibold tracking-[-0.01em] text-white">
+                <h3 className="mt-5 text-[15.5px] font-semibold tracking-[-0.01em] text-slate-900">
                   {p.title}
                 </h3>
-                <p className="mt-2.5 text-[13.5px] leading-relaxed text-mist-400">{p.body}</p>
+                <p className="mt-2.5 text-[13.5px] leading-relaxed text-slate-600">{p.body}</p>
               </div>
             </Reveal>
           ))}
@@ -421,73 +413,34 @@ function Mechanism() {
 
 function Invariant() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <div>
-          <SectionHeading
-            eyebrow="The release invariant"
-            title={
-              <>
-                One negative check fails the release.{' '}
-                <span className="text-mist-300">No signature. No transaction.</span>
-              </>
-            }
-            sub="The API runs every check in the same attempt, then a short-lived, signed authorization binds chain, contract, trade, milestone, parties, amount, token, nonce, and evidence — and the contract re-verifies before transferring."
-          />
-          <Reveal delay={0.1}>
-            <ul className="mt-8 space-y-3">
-              {[
-                'Every timeout, malformed response, or paused pool fails closed.',
-                'A stale, frozen, or jurisdiction-ineligible party blocks the next release.',
-                'Each attempt is reason-coded and recorded in the audit trail.',
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[14px] text-mist-300">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok-500/12 text-ok-400">
-                    <CheckIcon size={11} weight="bold" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.12}>
-          <div className="panel overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/[0.06] bg-ink-900/70 px-4 py-2.5">
-              <span className="font-mono text-[12px] text-mist-400">orchestrator/release.ts</span>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-danger-500/70" />
-                <span className="h-2.5 w-2.5 rounded-full bg-warn-500/70" />
-                <span className="h-2.5 w-2.5 rounded-full bg-ok-500/70" />
-              </div>
-            </div>
-            <pre className="overflow-x-auto p-5 font-mono text-[12.5px] leading-[1.7]">
-              <code>
-                <span className="text-mist-500">const</span>{' '}
-                <span className="text-mist-300">attempt</span> ={' '}
-                <span className="text-bridge-300">await</span>{' '}
-                <span className="text-mist-300">release</span>({'{'}
-                {'\n'} milestone: <span className="text-ok-300">2</span>,{'\n'} checks: {'{'}
-                {'\n'} verify_apass: {'{'} importer: <span className="text-ok-300">4</span>,
-                exporter: <span className="text-danger-300">2</span> {'}'}{' '}
-                <span className="text-mist-500">// ← frozen</span>
-                {'\n'} validator_verify: {'{'} importer: <span className="text-ok-300">true</span>,
-                exporter: <span className="text-danger-300">false</span> {'}'}
-                {'\n'} local_state: <span className="text-ok-300">ACTIVE</span>,{'\n'} {'}'},{'\n'}
-                {'}'});
-                {'\n\n'}
-                <span className="text-mist-500">if</span> (
-                <span className="text-mist-300">attempt</span>.checks.verify_apass.exporter{' '}
-                <span className="text-mist-500">!==</span> <span className="text-ok-300">4</span>)
-                {'\n'} <span className="text-mist-500">return</span>{' '}
-                <span className="text-mist-300">deny</span>(
-                <span className="text-danger-300">REASON.APASS_NOT_VALID</span>);
-                {'\n'}
-                <span className="text-mist-500">// no signature · no tx · no transfer</span>
-              </code>
-            </pre>
-          </div>
+    <section className="mx-auto max-w-[1440px] px-6 py-24 md:py-32">
+      <div className="max-w-2xl">
+        <SectionHeading
+          light
+          eyebrow="The release invariant"
+          title={
+            <>
+              One negative check fails the release.{' '}
+              <span className="text-slate-500">No signature. No transaction.</span>
+            </>
+          }
+          sub="The API runs every check in the same attempt, then a short-lived, signed authorization binds chain, contract, trade, milestone, parties, amount, token, nonce, and evidence — and the contract re-verifies before transferring."
+        />
+        <Reveal delay={0.1}>
+          <ul className="mt-8 max-w-xl space-y-3">
+            {[
+              'Every timeout, malformed response, or paused pool fails closed.',
+              'A stale, frozen, or jurisdiction-ineligible party blocks the next release.',
+              'Each attempt is reason-coded and recorded in the audit trail.',
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3 text-[14px] text-slate-700">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok-500/12 text-ok-500">
+                  <CheckIcon size={11} weight="bold" />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
         </Reveal>
       </div>
     </section>
@@ -525,9 +478,10 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="border-t border-white/[0.06] bg-ink-900/40">
-      <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+    <section id="how-it-works" className="border-t border-slate-200 bg-slate-50/70">
+      <div className="mx-auto max-w-[1440px] px-6 py-24 md:py-32">
         <SectionHeading
+          light
           align="center"
           eyebrow="How it works"
           title="One trade. One successful release. One fail-closed release."
@@ -539,16 +493,16 @@ function HowItWorks() {
             return (
               <Reveal key={step.title} delay={(i % 3) * 0.07} as="li">
                 <div
-                  className={`panel relative h-full overflow-hidden p-6 transition hover:border-white/[0.14] ${
-                    danger ? 'border-danger-400/15' : ''
+                  className={`panel-light relative h-full overflow-hidden p-6 transition hover:border-slate-300 ${
+                    danger ? 'border-danger-300' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-full border font-mono text-[13px] font-medium ${
                         danger
-                          ? 'border-danger-400/30 bg-danger-500/10 text-danger-300'
-                          : 'border-bridge-400/25 bg-bridge-500/10 text-bridge-300'
+                          ? 'border-danger-300 bg-danger-500/10 text-danger-600'
+                          : 'border-bridge-500/30 bg-bridge-500/10 text-bridge-600'
                       }`}
                     >
                       {i + 1}
@@ -559,10 +513,10 @@ function HowItWorks() {
                       <span className="label">{i < 3 ? 'Setup' : 'Settlement'}</span>
                     )}
                   </div>
-                  <h3 className="mt-5 text-[15px] font-semibold tracking-[-0.01em] text-white">
+                  <h3 className="mt-5 text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-mist-400">{step.body}</p>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600">{step.body}</p>
                 </div>
               </Reveal>
             );
@@ -577,24 +531,20 @@ function HowItWorks() {
 
 function CtaBand() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+    <section className="mx-auto max-w-[1440px] px-6 py-24 md:py-32">
       <Reveal>
         <div className="panel relative overflow-hidden p-10 md:p-14">
-          <div
-            className="absolute -top-32 left-1/2 h-64 w-[42rem] -translate-x-1/2 rounded-full bg-bridge-500/[0.1] blur-3xl"
-            aria-hidden="true"
-          />
           <div className="relative flex flex-col items-center gap-8 text-center">
             <Chip tone="info" dot>
               Reproducible in minutes · mocks by default
             </Chip>
             <h2 className="max-w-2xl text-balance text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl md:leading-[1.06]">
-              Watch a payment <span className="text-gradient">fail safely</span>.
+              Watch a payment <span className="text-accent-soft">fail safely</span>.
             </h2>
             <p className="max-w-xl text-balance text-[15.5px] leading-relaxed text-mist-400">
-              Fund the trade, release milestone one, freeze the exporter, and attempt milestone two
-              — then export both decisions as one audit packet with hashes, reason codes, and Travel
-              Rule evidence.
+              Watch the escrow fund automatically, release milestone one, freeze the exporter, and
+              attempt milestone two — then export both decisions as one audit packet with hashes,
+              reason codes, and Travel Rule evidence.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link href="/dashboard" className="btn-primary px-6 py-3 text-[15px]">
@@ -628,18 +578,21 @@ function CtaBand() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/[0.06]">
-      <div className="mx-auto max-w-6xl px-6 py-14">
+    <footer className="border-t border-slate-200 bg-white/60">
+      <div className="mx-auto max-w-[1440px] px-6 py-14">
         <div className="flex flex-col justify-between gap-10 md:flex-row">
           <div className="max-w-sm">
-            <BridgeSureWordmark />
-            <p className="mt-4 text-[13.5px] leading-relaxed text-mist-500">
+            <span className="inline-flex items-center gap-2.5">
+              <BridgeSureMark className="h-6 w-6" />
+              <span className="font-semibold tracking-[-0.01em] text-slate-900">BridgeSure</span>
+            </span>
+            <p className="mt-4 text-[13.5px] leading-relaxed text-slate-500">
               Compliance-continuous escrow for cross-border trade. Every milestone release is a
               fresh, reason-coded compliance decision.
             </p>
             <div className="mt-5 flex items-center gap-2">
-              <CleanverseMark className="h-4 w-4" />
-              <span className="text-[12px] text-mist-500">Built on the Cleanverse network</span>
+              <img src="/brand/cleanverse-logo-black.svg" alt="" className="h-4 w-4" />
+              <span className="text-[12px] text-slate-500">Built on the Cleanverse network</span>
             </div>
           </div>
 
@@ -648,17 +601,20 @@ function Footer() {
               <span className="label">Product</span>
               <ul className="mt-4 space-y-2.5 text-[13.5px]">
                 <li>
-                  <a className="text-mist-400 transition hover:text-white" href="#product">
+                  <a className="text-slate-600 transition hover:text-slate-900" href="#product">
                     Why it exists
                   </a>
                 </li>
                 <li>
-                  <a className="text-mist-400 transition hover:text-white" href="#mechanism">
+                  <a className="text-slate-600 transition hover:text-slate-900" href="#mechanism">
                     Mechanism
                   </a>
                 </li>
                 <li>
-                  <a className="text-mist-400 transition hover:text-white" href="#how-it-works">
+                  <a
+                    className="text-slate-600 transition hover:text-slate-900"
+                    href="#how-it-works"
+                  >
                     How it works
                   </a>
                 </li>
@@ -668,23 +624,26 @@ function Footer() {
               <span className="label">Platform</span>
               <ul className="mt-4 space-y-2.5 text-[13.5px]">
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/dashboard">
+                  <Link
+                    className="text-slate-600 transition hover:text-slate-900"
+                    href="/dashboard"
+                  >
                     Dashboard
                   </Link>
                 </li>
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/trades">
+                  <Link className="text-slate-600 transition hover:text-slate-900" href="/trades">
                     Trades
                   </Link>
                 </li>
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/disputes">
+                  <Link className="text-slate-600 transition hover:text-slate-900" href="/disputes">
                     Resolution center
                   </Link>
                 </li>
                 <li>
                   <Link
-                    className="text-mist-400 transition hover:text-white"
+                    className="text-slate-600 transition hover:text-slate-900"
                     href="/admin/dashboard"
                   >
                     Operator portal
@@ -696,23 +655,23 @@ function Footer() {
               <span className="label">Ecosystem</span>
               <ul className="mt-4 space-y-2.5 text-[13.5px]">
                 <li>
-                  <span className="text-mist-400">Monad Testnet</span>
+                  <span className="text-slate-600">Monad Testnet</span>
                 </li>
                 <li>
-                  <span className="text-mist-400">Cleanverse</span>
+                  <span className="text-slate-600">Cleanverse</span>
                 </li>
                 <li>
-                  <span className="text-mist-400">aUSDC</span>
+                  <span className="text-slate-600">aUSDC</span>
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/[0.06] pt-6 text-[12px] text-mist-500 sm:flex-row sm:items-center">
-          <span>© 2026 BridgeSure. Demo system — synthetic fixtures, no real funds.</span>
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-6 text-[12px] text-slate-500 sm:flex-row sm:items-center">
+          <span>© 2026 BridgeSure — live on Monad Testnet.</span>
           <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-ok-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-ok-500" />
             Monad Testnet · chain 10143
           </span>
         </div>
@@ -725,7 +684,7 @@ function Footer() {
 
 export function LandingPage() {
   return (
-    <>
+    <div className="landing-light min-h-screen bg-canvas text-slate-700">
       <Nav />
       <main>
         <Hero />
@@ -737,6 +696,6 @@ export function LandingPage() {
         <CtaBand />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

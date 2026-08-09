@@ -37,6 +37,10 @@
   --color-mist-400: #94a6bd;
   --color-mist-500: #6b7f99;
 
+  /* Light institutional surface (landing page only; app/admin stay on ink). */
+  --color-canvas: #f5f7fb;
+  --color-canvas-line: #e7ecf3;
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
@@ -131,35 +135,13 @@
       focus:border-bridge-400/60 focus:outline-none focus:ring-2 focus:ring-bridge-400/20;
   }
 
-  /* Word-level gradient for a single accent phrase. */
-  .text-gradient {
-    background: linear-gradient(
-      92deg,
-      var(--color-bridge-200) 0%,
-      var(--color-bridge-400) 48%,
-      #6ea8ff 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  /* Word-level accent for a single phrase (no gradient). */
+  .text-accent {
+    color: var(--color-bridge-600);
   }
 
-  /* Faint engineering grid, masked to fade out. */
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-    background-size: 44px 44px;
-    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 75%);
-  }
-
-  /* Top-center brand glow behind the hero. */
-  .hero-glow {
-    background: radial-gradient(
-      62% 46% at 50% 0%,
-      rgb(23 185 230 / 0.13),
-      transparent 72%
-    );
+  .text-accent-soft {
+    color: var(--color-bridge-300);
   }
 
   /* Mono "hash line" used in decision logs and evidence blocks. */
@@ -179,6 +161,38 @@
   .tone-bridge {
     color: var(--color-bridge-400);
   }
+
+  .btn-hero {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-bridge-400 px-6 py-3.5 text-[15px] font-semibold text-ink-950 transition
+      hover:bg-bridge-300 active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.08),
+      0 14px 30px -12px rgb(23 185 230 / 0.55);
+  }
+
+  /* ---- Light institutional surface (landing page only) ----
+     app/admin keep the dark ink theme; the landing opts into light via the
+     .landing-light wrapper. Light surfaces use the built-in slate palette. */
+
+  .panel-light {
+    @apply rounded-[14px] border border-slate-200/80 bg-white;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 16px 40px -24px rgb(15 23 42 / 0.14);
+  }
+
+  .glass-light {
+    @apply border-b border-slate-200/80 bg-white/85 backdrop-blur-xl;
+  }
+
+  .btn-secondary-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition
+      hover:border-slate-400 hover:bg-slate-50 active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+  }
+}
+
+/* Light shell the landing page sits in; also flips color-scheme so form
+   controls / scrollbars render light on this route only. */
+.landing-light {
+  color-scheme: light;
 }
 
 /* Scroll-reveal (JS adds .is-visible via IntersectionObserver). */

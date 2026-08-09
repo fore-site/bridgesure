@@ -140,12 +140,14 @@ export function SectionHeading({
   title,
   sub,
   align = 'left',
+  light = false,
   className = '',
 }: {
   eyebrow: string;
   title: ReactNode;
   sub?: ReactNode;
   align?: 'left' | 'center';
+  light?: boolean;
   className?: string;
 }) {
   const alignCls = align === 'center' ? 'mx-auto text-center items-center' : '';
@@ -155,10 +157,22 @@ export function SectionHeading({
         <span className="h-px w-6 bg-bridge-400/60" />
         {eyebrow}
       </span>
-      <h2 className="text-balance text-3xl font-semibold tracking-[-0.03em] text-white md:text-[2.6rem] md:leading-[1.08]">
+      <h2
+        className={`text-balance text-3xl font-semibold tracking-[-0.03em] md:text-[2.6rem] md:leading-[1.08] ${
+          light ? 'text-slate-900' : 'text-white'
+        }`}
+      >
         {title}
       </h2>
-      {sub && <p className="text-balance text-[15.5px] leading-relaxed text-mist-400">{sub}</p>}
+      {sub && (
+        <p
+          className={`text-balance text-[15.5px] leading-relaxed ${
+            light ? 'text-slate-600' : 'text-mist-400'
+          }`}
+        >
+          {sub}
+        </p>
+      )}
     </Reveal>
   );
 }
