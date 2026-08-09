@@ -78,8 +78,10 @@ export function MilestoneTrack({
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {trade.milestones.map((m, idx) => {
-          const isBlocked = blocked.has(m.id);
           const isReleased = m.status === 'RELEASED';
+          // A historical denied attempt must not keep a released milestone
+          // looking blocked: the milestone released, so it is no longer stuck.
+          const isBlocked = blocked.has(m.id) && !isReleased;
           const reason = denied?.milestoneId === m.id ? denied.reasonCode : null;
           const dangerStep = isBlocked || (denied?.milestoneId === m.id && !isReleased);
 
@@ -115,7 +117,7 @@ export function MilestoneTrack({
                   </span>
                   <span className="text-[14px] font-semibold text-white">Milestone {m.id}</span>
                 </div>
-                {isBlocked || dangerStep ? (
+                {dangerStep ? (
                   <Chip tone="danger" dot>
                     Blocked
                   </Chip>
@@ -145,7 +147,7 @@ export function MilestoneTrack({
                 </div>
               )}
 
-              {dangerStep && !isReleased && (
+              {dangerStep && (
                 <div className="mt-4 border-t border-white/[0.06] pt-3.5">
                   <div className="label">Blocked by</div>
                   <div className="mt-1.5 flex items-center gap-2">
