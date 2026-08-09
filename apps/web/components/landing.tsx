@@ -56,8 +56,8 @@ function Nav() {
             <span className="h-1.5 w-1.5 rounded-full bg-ok-400 pulse-soft" />
             Monad Testnet
           </span>
-          <Link href="/console" className="btn-primary">
-            Open console
+          <Link href="/dashboard" className="btn-primary">
+            Open the app
             <ArrowUpRightIcon size={15} weight="bold" />
           </Link>
         </div>
@@ -91,13 +91,13 @@ function Nav() {
               </a>
             ))}
             <Link
-              href="/console"
+              href="/dashboard"
               onClick={() => {
                 setOpen(false);
               }}
               className="btn-primary mt-2 w-full"
             >
-              Open console
+              Open the app
             </Link>
           </nav>
         </div>
@@ -239,8 +239,8 @@ function Hero() {
             </Reveal>
             <Reveal delay={0.2}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/console" className="btn-primary px-5 py-3 text-[15px]">
-                  Open the compliance console
+                <Link href="/dashboard" className="btn-primary px-5 py-3 text-[15px]">
+                  Open the app
                   <ArrowRightIcon size={16} weight="bold" />
                 </Link>
                 <a href="#how-it-works" className="btn-secondary px-5 py-3 text-[15px]">
@@ -597,8 +597,8 @@ function CtaBand() {
               Rule evidence.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link href="/console" className="btn-primary px-6 py-3 text-[15px]">
-                Open the compliance console
+              <Link href="/dashboard" className="btn-primary px-6 py-3 text-[15px]">
+                Open the app
                 <ArrowRightIcon size={16} weight="bold" />
               </Link>
               <a href="#mechanism" className="btn-secondary px-6 py-3 text-[15px]">
@@ -665,21 +665,29 @@ function Footer() {
               </ul>
             </div>
             <div>
-              <span className="label">Console</span>
+              <span className="label">Platform</span>
               <ul className="mt-4 space-y-2.5 text-[13.5px]">
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/console">
-                    Trade overview
+                  <Link className="text-mist-400 transition hover:text-white" href="/dashboard">
+                    Dashboard
                   </Link>
                 </li>
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/console">
-                    Milestones
+                  <Link className="text-mist-400 transition hover:text-white" href="/trades">
+                    Trades
                   </Link>
                 </li>
                 <li>
-                  <Link className="text-mist-400 transition hover:text-white" href="/console">
-                    Audit export
+                  <Link className="text-mist-400 transition hover:text-white" href="/disputes">
+                    Resolution center
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    className="text-mist-400 transition hover:text-white"
+                    href="/admin/dashboard"
+                  >
+                    Operator portal
                   </Link>
                 </li>
               </ul>

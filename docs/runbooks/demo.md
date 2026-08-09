@@ -1,9 +1,9 @@
 # BridgeSure Demo Runbook
 
-There are two ways to run the demo: the **local console** (default, fully mocked, no network or
+There are two ways to run the demo: the **local app** (default, fully mocked, no network or
 credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 
-## Local Console (mocked, recommended first)
+## Local App (mocked, recommended first)
 
 1. Copy `.env.example` to an ignored `.env` and generate a demo-only
    `BRIDGESURE_RELEASE_SIGNER_PRIVATE_KEY` (`cast wallet new` or `openssl rand -hex 32`
@@ -22,14 +22,17 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 
 3. Run `pnpm dev` from the repo root: the API boots on :4000 with a scripted sandbox mock and
    the web app on :3000.
-4. Open http://localhost:3000 — the landing page explains the product; "Open console" starts
-   the demo.
-5. In the console: **Fund escrow**, then **Release milestone one** (fresh checks pass, bounded
-   authorization signed), then **Freeze exporter credential** (confirm), then **Release
-   milestone two** — it fails closed with `APASS_NOT_VALID`, the milestone card and audit feed
-   show the reason, and the balances are unchanged. **Export** downloads the audit packet.
-   Trades, audit trails, disputes and evidence persist in the configured registry across
-   restarts.
+4. Open http://localhost:3000 — the landing page explains the product; "Open the app" takes
+   you to the trading-party dashboard (/dashboard) with balances, TVL, contract alerts and
+   milestone deadlines.
+5. Open the **operator portal** (link in the app header, or /admin/dashboard): **Fund escrow**,
+   then **Release milestone one** (fresh checks pass, bounded authorization signed), then
+   **Freeze exporter credential** (confirm), then **Release milestone two** — it fails closed
+   with `APASS_NOT_VALID`, the milestone card and audit feed show the reason, and the balances
+   are unchanged. The party-facing routes (/trades, /trades/[trade_id], /disputes) mirror the
+   same state: the connected wallet decides the seat, and the exporter seat claims the signed
+   authorization from the shared trade view. **Export** downloads the audit packet. Trades,
+   audit trails, disputes and evidence persist in the configured registry across restarts.
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 
@@ -73,8 +76,8 @@ effect — and refuses to run without `--confirm`. All commands require
 
 8. `pnpm provision:fund-escrow --confirm` — importer approves and funds the escrow; prints
    importer and escrow balances before and after.
-9. Mirror the funding in the API (live mode): `POST /trades/:id/fund-intent` (the console Fund
-   button), then release milestone one. Save the response payload and submit it on-chain:
+9. Mirror the funding in the API (live mode): `POST /trades/:id/fund-intent` (the admin portal
+   Fund button), then release milestone one. Save the response payload and submit it on-chain:
    `pnpm provision:submit-release --payload release-m1.json --confirm` — the contract re-runs
    the CVI checks before moving value. Record the tx hash for the Travel Rule export.
 
@@ -82,7 +85,7 @@ effect — and refuses to run without `--confirm`. All commands require
 
 10. `pnpm provision:freeze-exporter --confirm` — freezes the exporter's A-Pass
     (`/update_status` status "2").
-11. Attempt milestone two (console/API): it fails closed with `APASS_NOT_VALID` and no
+11. Attempt milestone two (admin portal/API): it fails closed with `APASS_NOT_VALID` and no
     transaction is submitted — verify the escrow and exporter balances did not move.
 12. `pnpm provision:unfreeze-exporter --confirm` reactivates the credential if the demo is
     re-run.
