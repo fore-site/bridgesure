@@ -74,6 +74,8 @@ export function buildServer(deps: {
     evidenceAgeLimitSeconds: config.BRIDGESURE_EVIDENCE_AGE_LIMIT_SECONDS,
     authExpiryWindowSeconds: config.BRIDGESURE_AUTH_EXPIRY_WINDOW_SECONDS,
     noncePoolStart: config.BRIDGESURE_NONCE_POOL_START,
+    cleanverseRetryAttempts: config.BRIDGESURE_CLEANVERSE_RETRY_ATTEMPTS,
+    cleanverseRetryBaseMs: config.BRIDGESURE_CLEANVERSE_RETRY_BASE_MS,
     releaseSignerPrivateKey: signerKey,
     releaseSignerAddress: signerAddress,
     cleanverse: deps.cleanverse,

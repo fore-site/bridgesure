@@ -4,7 +4,7 @@
 
 - **MVP implemented (2026-08-08).** The typed Cleanverse transport, the escrow state
   machine, the `BridgeSureEscrow` contract, the release-orchestration API, and the web
-  console (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 20/20).
+  console (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 21/21).
 - **Web console shipped.** A product landing page and a compliance console at `apps/web`:
   trade overview, milestone track with balances, action panel (fund, release, freeze, hold),
   authorization evidence, and an exportable audit trail. The browser talks only to the API;
@@ -13,8 +13,11 @@
   participant invalidation (balances unchanged), and export the audit packet. The API runs in
   `BRIDGESURE_CLEANVERSE_MODE=demo` (default) with a scripted sandbox mock — no network or
   credentials needed for `pnpm dev`.
-- **Remaining:** live Monad Testnet provisioning — escrow deployment, validator-pool
-  registration, A-Pass records, and funding (see the
+- **Live provisioning advanced (2026-08-08).** The escrow is deployed and registered as its
+  own compliance pool, both demo A-Pass records are generated, and the importer holds 40 aUSDC
+  (both milestones covered).
+  Remaining: fund the escrow on-chain, release milestone one, freeze the exporter and block
+  milestone two, then export the Travel Rule evidence (see the
   [deployment checklist](planning/deployment-checklist.md)).
 
 Read these documents in order:
@@ -44,11 +47,12 @@ Source precedence:
 
 Open implementation inputs:
 
-- deployed escrow address;
-- A-Pass records for both participants (generation is a sandbox write);
-- validator-pool registration path for the escrow (REGISTER_ROLE; /validator/apply vs
-  grant/register flow) and the registerApass CVA-vault requirement;
-- funding source for the demo (importer aUSDC balance is currently 0).
+- `registerApass` CVA-vault eligibility for the escrow (D-009): the escrow must
+  self-register (caller must be the pool), which the current contract cannot do.
+  Resolution is recorded as an executable plan
+  ([vault-registration-plan.md](planning/vault-registration-plan.md)): add
+  `registerPool()`, redeploy, re-register the pool, re-grant `REGISTER_ROLE`,
+  then send `registerPool()`. Not yet executed.
 
 Resolved (see [environment validation](planning/environment-validation.md)):
 
@@ -56,4 +60,14 @@ Resolved (see [environment validation](planning/environment-validation.md)):
 - validator 0xaC7e5179C2C7f03f209136886c172eb34F161792 is deployed only on Monad Testnet:
   EIP-1967 proxy (implementation 0x68ce853d660444ffd98d6d5d98ac8ad58241d5a9) implementing the
   CVI IAPassComplianceValidator surface; unregistered pools revert with PoolNotRegistered();
-- supported Monad CVA: aUSDC 0xaC0893567D43C3E7e6e35a72803df05416C1f20D (no issuance needed).
+- supported Monad CVA: aUSDC 0xaC0893567D43C3E7e6e35a72803df05416C1f20D (no issuance needed);
+- deployed escrow `0x6391427d323a43427c42df61369862f83f1f68ca`, registered as its own
+  compliance pool (registration tx
+  `0xfd2497c511e0c274fc40bcdb88b12ed790a1ca0eb8bc98a6ca492f311ae99c93`); `verify-pool`:
+  registered=true, paused=false, 1 rule;
+- demo A-Pass records: importer cvRecordId 1867, exporter cvRecordId 1869 (tier 50, verify
+  code 4 eligible);
+- funding: 40 aUSDC minted to the importer across two whitelisted-sender wraps — 20 from
+  `0xd13D20E795...` (org-registered circle faucet; tx `0x56f73d4a...`, block 52004427) and
+  20 from Anchorage Digital `0x3FeEeD1a2...` (tx `0x83854b08...`, block 52225213); both
+  milestones funded.

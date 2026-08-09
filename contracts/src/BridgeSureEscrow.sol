@@ -11,6 +11,10 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 ///         `PoolNotRegistered()` when the pool is not registered.
 interface IAPassComplianceValidator {
     function complianceVerify(address pool, address user) external view returns (bool);
+    /// @notice Registers a pool against an A-Token CVA vault. Self-registration
+    ///         only: the caller must be the pool being registered, and it must
+    ///         hold REGISTER_ROLE on the validator.
+    function registerApass(address poolAddress, address aTokenAddress) external;
 }
 
 /// @notice CVA policy hook (independent second gate; the A-Token's internal
@@ -91,6 +95,16 @@ contract BridgeSureEscrow is ReentrancyGuard {
     ///         the admin wallet can register the escrow as its own pool.
     function owner() external view returns (address) {
         return admin;
+    }
+
+    /// @notice Registers this escrow as its own CVA vault on the validator
+    ///         (IAPassComplianceValidator.registerApass). The validator
+    ///         requires the pool itself — msg.sender == pool — to hold
+    ///         REGISTER_ROLE; the gateway granted that role to this contract,
+    ///         so the call originates from address(this). Admin-triggered;
+    ///         call once after deployment.
+    function registerPool() external nonReentrant onlyAdmin {
+        IAPassComplianceValidator(validator).registerApass(address(this), cvaToken);
     }
 
     mapping(uint256 => bool) public milestoneReleased; // index 1 and 2

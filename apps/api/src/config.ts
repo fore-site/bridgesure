@@ -54,6 +54,12 @@ const envSchema = z.object({
   BRIDGESURE_EVIDENCE_AGE_LIMIT_SECONDS: z.coerce.number().int().positive().default(300),
   BRIDGESURE_AUTH_EXPIRY_WINDOW_SECONDS: z.coerce.number().int().positive().default(120),
   BRIDGESURE_NONCE_POOL_START: z.coerce.bigint().default(1n),
+  // Release-path retry for transient Cleanverse transport failures (network,
+  // timeout, malformed). Exponential backoff from the base ms, doubled per
+  // retry, plus jitter. Business rejections (top-level code != 0000) are never
+  // retried — they fail closed immediately.
+  BRIDGESURE_CLEANVERSE_RETRY_ATTEMPTS: z.coerce.number().int().min(1).max(6).default(3),
+  BRIDGESURE_CLEANVERSE_RETRY_BASE_MS: z.coerce.number().int().min(0).max(10_000).default(400),
   BRIDGESURE_PORT: z.coerce.number().int().positive().default(4_000),
   BRIDGESURE_WEB_ORIGIN: z.string().default('http://localhost:3000'),
 });

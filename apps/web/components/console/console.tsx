@@ -6,6 +6,9 @@ import {
   ArrowClockwiseIcon,
   ArrowUpRightIcon,
   CheckCircleIcon,
+  HandCoinsIcon,
+  SlidersHorizontalIcon,
+  WalletIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
 import { api, ApiError, fetchTrade } from '@/lib/api';
@@ -22,14 +25,41 @@ import {
 import { BridgeSureWordmark, CleanverseMark } from '@/components/brand';
 import { Chip, CopyButton } from '@/components/ui';
 import { ToastProvider, useToasts } from './toasts';
+import { WalletProvider } from './wallet-provider';
 import { TradeCard } from './trade-card';
 import { MilestoneTrack, type DeniedAttempt } from './milestone-track';
 import { ActionPanel } from './action-panel';
+import { ImporterPanel } from './importer-panel';
+import { ExporterPanel } from './exporter-panel';
 import { PolicyCard } from './policy-card';
 import { AuditFeed } from './audit-feed';
 
+const ROLE_TABS = [
+  {
+    id: 'operator',
+    label: 'Operator',
+    icon: SlidersHorizontalIcon,
+    hint: 'Orchestrates the trade and compliance checks.',
+  },
+  {
+    id: 'importer',
+    label: 'Importer',
+    icon: WalletIcon,
+    hint: 'You are the importer — fund the trade from your wallet.',
+  },
+  {
+    id: 'exporter',
+    label: 'Exporter',
+    icon: HandCoinsIcon,
+    hint: 'You are the exporter — claim the authorized milestone payment.',
+  },
+] as const;
+
+type RoleId = (typeof ROLE_TABS)[number]['id'];
+
 function ConsoleBody() {
   const { push } = useToasts();
+  const [role, setRole] = useState<RoleId>('operator');
   const [trade, setTrade] = useState<TradeView | null>(null);
   const [audit, setAudit] = useState<AuditRecordView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +122,17 @@ function ConsoleBody() {
       }
     },
     [push],
+  );
+
+  // The importer panel mirrors its on-chain funding into the API state (no
+  // duplicate toast — the panel reports its own progress).
+  const mirrorFund = useCallback(
+    async (amount: string) => {
+      if (!trade) return;
+      await api.fund(trade.id, amount);
+      await refresh();
+    },
+    [trade, refresh],
   );
 
   const actions = useMemo(
@@ -262,7 +303,46 @@ function ConsoleBody() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div
+          className="flex flex-wrap items-center justify-between gap-3"
+          role="tablist"
+          aria-label="Demo role"
+        >
+          <div className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-ink-900/70 p-1">
+            {ROLE_TABS.map((r) => {
+              const active = role === r.id;
+              const Icon = r.icon;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition ${
+                    active
+                      ? 'bg-white/[0.09] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'text-mist-400 hover:bg-white/[0.04] hover:text-white'
+                  }`}
+                  onClick={() => {
+                    setRole(r.id);
+                  }}
+                >
+                  <Icon
+                    size={13}
+                    weight={active ? 'fill' : 'duotone'}
+                    className={active ? 'text-bridge-300' : ''}
+                  />
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11.5px] text-mist-500">
+            {ROLE_TABS.find((r) => r.id === role)?.hint}
+          </p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="label">Trade</div>
             <div className="mt-1.5 flex items-center gap-2">
@@ -284,14 +364,22 @@ function ConsoleBody() {
             <MilestoneTrack trade={trade} blocked={blocked} denied={denied} />
           </div>
           <aside className="space-y-6 lg:col-span-4">
-            <ActionPanel
-              trade={trade}
-              busy={busy}
-              frozen={frozen}
-              blocked={blocked}
-              onAction={actions}
-            />
-            <PolicyCard />
+            {role === 'operator' ? (
+              <>
+                <ActionPanel
+                  trade={trade}
+                  busy={busy}
+                  frozen={frozen}
+                  blocked={blocked}
+                  onAction={actions}
+                />
+                <PolicyCard />
+              </>
+            ) : role === 'importer' ? (
+              <ImporterPanel trade={trade} onFundMirrored={mirrorFund} />
+            ) : (
+              <ExporterPanel trade={trade} auth={lastAuth} onSubmitted={refresh} />
+            )}
           </aside>
         </div>
 
@@ -406,8 +494,10 @@ function KV({
 
 export function ConsolePage() {
   return (
-    <ToastProvider>
-      <ConsoleBody />
-    </ToastProvider>
+    <WalletProvider>
+      <ToastProvider>
+        <ConsoleBody />
+      </ToastProvider>
+    </WalletProvider>
   );
 }

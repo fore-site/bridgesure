@@ -26,10 +26,13 @@ and docs/runbooks/demo.md). Read-only checks run by default.
    can receive and transfer aUSDC; use `registerApass(pool, aToken, fee)` only if required and
    accessible through the documented role path; escalate to Cleanverse support only if the test
    proves a missing capability.
-3. Funding source: importer aUSDC balance is 0; `POST /faucet` is reachable but its Monad aUSDC
-   pool is unbacked (`ERC20InsufficientBalance` on the faucet's own wallet; 5 aUSDC per-request
-   cap) — obtain funds via a Cleanverse transfer. The faucet path itself is validated: it
-   accepted the request once the recipient had an A-Pass (see A-Pass generation below).
+3. Funding source: RESOLVED (2026-08-08) — the importer holds 40 aUSDC on-chain, enough for
+   both milestones. Two whitelisted-sender wraps minted it: 20 from `0xd13D20E795...`
+   (org-registered circle faucet; tx `0x56f73d4a...`, block 52004427) and 20 from Anchorage
+   Digital `0x3FeEeD1a2...` (tx `0x83854b08...`, block 52225213); three other faucet drips
+   from unregistered dispensers were refunded as raw USDC. The `POST /faucet` path remains
+   unbacked for Monad aUSDC but no longer blocks the demo — proceed to fund the escrow and
+   run the release sequence.
 
 ## Ordered checklist
 
@@ -74,9 +77,13 @@ and docs/runbooks/demo.md). Read-only checks run by default.
 
 ### CVA vault eligibility (D-009, write or read)
 
-- [ ] Resolve open item 2: test whether the escrow can receive/transfer aUSDC. Use
-      `registerApass(pool, aToken, fee)` only if required and accessible; escalate to support if
-      the capability is missing.
+- [ ] Resolve open item 2: the escrow must self-register via `registerApass`
+      (caller must be the pool; `PoolNotRegistered()` otherwise) and it lacks a
+      function to do so. **Plan recorded (2026-08-09):** add `registerPool()` to
+      `BridgeSureEscrow`, redeploy, re-register the pool, re-grant `REGISTER_ROLE`
+      to the new address, then send `registerPool()` — see
+      [vault-registration-plan.md](vault-registration-plan.md). Nothing executed
+      yet.
 
 ### Funding and release (writes)
 

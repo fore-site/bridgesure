@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
-import type { Chain, CleanverseApi } from '@bridgesure/cleanverse';
+import { BusinessError, type Chain, type CleanverseApi } from '@bridgesure/cleanverse';
 import {
   authorizationBinds,
   decideRelease,
@@ -41,7 +41,44 @@ export interface OrchestratorOptions {
   releaseSignerPrivateKey: `0x${string}`;
   releaseSignerAddress: string;
   cleanverse: CleanverseApi;
+  /** Retry attempts for transient Cleanverse transport failures in the release path. */
+  cleanverseRetryAttempts: number;
+  /** Base backoff (ms) doubled per retry, plus jitter. */
+  cleanverseRetryBaseMs: number;
   now?: () => number;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Retry a Cleanverse read on transient failures (network, timeout, malformed)
+ * with exponential backoff plus jitter. Business rejections (top-level code != 0000,
+ * e.g. a paused pool) are deterministic and never retried — they fail closed at once.
+ *
+ * The predicate retries anything except BusinessError (rather than testing for
+ * TransportError specifically) so the deterministic mocks — which throw plain
+ * Error for network/timeout/malformed kinds — exercise the same retry path as
+ * the real transport. Retrying an unexpected error is harmless: the caller
+ * still fails closed after the final attempt.
+ */
+async function withRetry<T>(fn: () => Promise<T>, attempts: number, baseMs: number): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof BusinessError) throw err;
+      lastError = err;
+      if (attempt + 1 < attempts) {
+        const backoff = baseMs * 2 ** attempt;
+        const jitter = Math.floor(Math.random() * Math.max(1, baseMs));
+        await delay(backoff + jitter);
+      }
+    }
+  }
+  throw lastError;
 }
 
 /**
@@ -263,11 +300,16 @@ export class ReleaseOrchestrator {
     requestIds: string[],
   ): Promise<{ code: number; available: boolean }> {
     try {
-      const result = await this.opts.cleanverse.verifyApass({
-        chain: this.opts.chain,
-        atoken: this.opts.token,
-        address: participant,
-      });
+      const result = await withRetry(
+        () =>
+          this.opts.cleanverse.verifyApass({
+            chain: this.opts.chain,
+            atoken: this.opts.token,
+            address: participant,
+          }),
+        this.opts.cleanverseRetryAttempts,
+        this.opts.cleanverseRetryBaseMs,
+      );
       requestIds.push(`verify_apass:${participant}`);
       return { code: result.code, available: true };
     } catch {
@@ -281,11 +323,16 @@ export class ReleaseOrchestrator {
     requestIds: string[],
   ): Promise<{ valid: boolean; available: boolean }> {
     try {
-      const result = await this.opts.cleanverse.validatorVerify({
-        chain: this.opts.chain,
-        contract_address: this.opts.validatorPool,
-        user_address: participant,
-      });
+      const result = await withRetry(
+        () =>
+          this.opts.cleanverse.validatorVerify({
+            chain: this.opts.chain,
+            contract_address: this.opts.validatorPool,
+            user_address: participant,
+          }),
+        this.opts.cleanverseRetryAttempts,
+        this.opts.cleanverseRetryBaseMs,
+      );
       requestIds.push(`validator_verify:${participant}`);
       return { valid: result.valid, available: true };
     } catch {

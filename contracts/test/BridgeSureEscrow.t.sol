@@ -28,8 +28,11 @@ contract MockAToken is ERC20, IATokenPolicy {
 
 /// @notice Deterministic CVI validator mock. `valid` gates both participants;
 ///         `revertOnCall` simulates an unregistered/paused pool (PoolNotRegistered).
+///         `registerApass` records the pool's CVA-vault registration.
 contract MockValidator is IAPassComplianceValidator {
     mapping(address => bool) public eligible;
+    mapping(address => bool) public registered;
+    mapping(address => address) public boundAToken; // pool -> registered aToken
     bool public revertOnCall;
 
     function setEligible(address user, bool ok) external {
@@ -43,6 +46,11 @@ contract MockValidator is IAPassComplianceValidator {
     function complianceVerify(address, address user) external view returns (bool) {
         if (revertOnCall) revert("PoolNotRegistered()");
         return eligible[user];
+    }
+
+    function registerApass(address poolAddress, address aTokenAddress) external {
+        registered[poolAddress] = true;
+        boundAToken[poolAddress] = aTokenAddress;
     }
 }
 
@@ -355,6 +363,21 @@ contract BridgeSureEscrowTest is EscrowTestBase {
         // The validator gateway verifies pool-registration owner signatures
         // against owner() of the subject contract (AGENTS.md / validator docs).
         assertEq(escrow.owner(), admin);
+    }
+
+    function test_AdminRegistersPoolAsVault() public {
+        assertFalse(validator.registered(address(escrow)));
+        vm.prank(admin);
+        escrow.registerPool();
+        assertTrue(validator.registered(address(escrow)));
+        // The escrow must bind the configured CVA token, not a wrong one.
+        assertEq(validator.boundAToken(address(escrow)), address(cva));
+    }
+
+    function test_OnlyAdminCanRegisterPool() public {
+        vm.prank(exporter);
+        vm.expectRevert(BridgeSureEscrow.OnlyAdmin.selector);
+        escrow.registerPool();
     }
 
     function test_FundingOnlyOnce() public {

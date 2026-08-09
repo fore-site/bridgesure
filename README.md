@@ -14,9 +14,12 @@ Status: MVP implemented (2026-08-08). All non-live checks pass (`pnpm check`, co
 tests) and the mocked demo flow is green: fund, release milestone one, block milestone two
 after participant invalidation (balances unchanged), and export the audit. The live testnet
 tooling is built and confirmation-gated — smoke checks, deployment, pool registration,
-A-Pass provisioning, funding, and release submission — and awaits the sandbox credentials
-(see the [deployment checklist](docs/planning/deployment-checklist.md) and the
-[demo runbook](docs/runbooks/demo.md)).
+A-Pass provisioning, funding, and release submission — and live provisioning is underway:
+the escrow is deployed and registered as its own compliance pool, both demo A-Passes are
+generated, and the importer holds 40 aUSDC (both milestones covered). Remaining: fund the
+escrow on-chain and run the
+live demo sequence (see the [deployment checklist](docs/planning/deployment-checklist.md)
+and the [demo runbook](docs/runbooks/demo.md)).
 
 ## Commands
 

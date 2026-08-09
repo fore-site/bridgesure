@@ -269,6 +269,105 @@ describe('BridgeSure API', () => {
     expect(trade.json().trade.milestones[0].status).toBe('RELEASED');
   });
 
+  it('DM-6: a transient Cleanverse network failure is retried and the release succeeds', async () => {
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await fund();
+
+    // Fail the next verify_apass call once; the release path retries it.
+    mock.failNext('/verify_apass', 'network');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'rel-retry-network' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().decision).toBe('allowed');
+    expect(res.json().authorization.nonce).toBe('1');
+  });
+
+  it('DM-6: a timeout failure is retried and the release succeeds', async () => {
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await fund();
+
+    mock.failNext('/verify_apass', 'timeout');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'rel-retry-timeout' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().decision).toBe('allowed');
+  });
+
+  it('DM-6: a transient validator-verify failure is retried and the release succeeds', async () => {
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await fund();
+
+    mock.failNext('/validator/verify', 'network');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'rel-retry-validator' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().decision).toBe('allowed');
+  });
+
+  it('DM-6: business rejections are never retried — the release fails closed at once', async () => {
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await fund();
+
+    // If the business error were retried, the second attempt would succeed and
+    // the release would be allowed; asserting denied proves it was not retried.
+    mock.failNext('/verify_apass', 'business');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'rel-no-retry-business' },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ decision: 'denied', reasonCode: 'CLEANVERSE_UNAVAILABLE' });
+  });
+
+  it('DM-6: retries exhaust and fail closed when the failure persists', async () => {
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await fund();
+
+    // Fail every verify_apass attempt for the importer (default retries = 3).
+    let failuresLeft = 3;
+    const flaky = Object.create(mock) as MockCleanverseClient;
+    const origVerifyApass = mock.verifyApass.bind(mock);
+    flaky.verifyApass = async (req) => {
+      if (failuresLeft > 0) {
+        failuresLeft -= 1;
+        throw new Error('fetch failed');
+      }
+      return origVerifyApass(req);
+    };
+    const flakyApp = buildServer({ cleanverse: flaky, env: makeEnv() });
+    await flakyApp.ready();
+
+    const res = await flakyApp.inject({
+      method: 'POST',
+      url: `/trades/${TRADE_ID}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'rel-retry-exhaust' },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toMatchObject({ decision: 'denied', reasonCode: 'CLEANVERSE_UNAVAILABLE' });
+    expect(failuresLeft).toBe(0); // exactly the configured attempts, no over-retry
+    await flakyApp.close();
+  });
+
   it('hold transitions the trade to HOLD with an audit record', async () => {
     await fund();
     const res = await app.inject({
