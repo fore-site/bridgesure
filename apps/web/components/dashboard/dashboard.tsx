@@ -16,7 +16,7 @@ import { useWalletModal } from '@/components/wallet/wallet-modal-provider';
 import { api, ApiError } from '@/lib/api';
 import { erc20Abi, monadTestnet, requireAddress } from '@/lib/wagmi';
 import { ASSET, CHAIN } from '@/lib/constants';
-import type { AuditRecordView, TradeView } from '@/lib/types';
+import type { AuditRecordView, ComplianceStatus, TradeView } from '@/lib/types';
 import type { TradeStatus } from '@bridgesure/domain';
 import { formatAmount, formatDateUtc, shortAddress, TRADE_STATUS_META } from '@/lib/format';
 import { Chip, HashText } from '@/components/ui';
@@ -33,6 +33,7 @@ export function Dashboard() {
   const [trades, setTrades] = useState<TradeView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [audits, setAudits] = useState<Record<string, AuditRecordView[]>>({});
+  const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
 
   const token = requireAddress(ASSET.address, 'token');
   const wrongChain = isConnected && chainId !== undefined && chainId !== monadTestnet.id;
@@ -70,6 +71,28 @@ export function Dashboard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live compliance for the connected wallet: fresh A-Pass + validator checks
+  // from the API. Non-party wallets resolve to not-eligible (mock returns code
+  // 2), so compliant and non-compliant addresses are distinguished at a glance.
+  useEffect(() => {
+    if (!isConnected || !address || wrongChain) {
+      setCompliance(null);
+      return;
+    }
+    let stale = false;
+    void api
+      .getComplianceStatus(address)
+      .then((res) => {
+        if (!stale) setCompliance(res);
+      })
+      .catch(() => {
+        if (!stale) setCompliance(null); // unavailable — panel shows a fallback
+      });
+    return () => {
+      stale = true;
+    };
+  }, [isConnected, address, wrongChain]);
 
   // Strictly wallet-scoped: the dashboard shows only the escrows the connected
   // address is a party to (importer or exporter). A different wallet sees none
@@ -291,9 +314,61 @@ export function Dashboard() {
               Compliance status
             </h2>
             <div className="mt-4 space-y-3">
+              {isConnected && address ? (
+                <>
+                  <div className="rounded-lg border border-white/[0.06] bg-ink-900/50 px-3 py-2.5">
+                    <div className="label">This wallet</div>
+                    <div className="mt-1 font-mono text-[11.5px] text-mist-300">
+                      {shortAddress(address)}
+                    </div>
+                  </div>
+                  <Row
+                    label="A-Pass"
+                    value={
+                      compliance === null
+                        ? 'Checking…'
+                        : compliance.apass.available
+                          ? compliance.apass.eligible
+                            ? 'Eligible · code 4'
+                            : `Not eligible · code ${String(compliance.apass.code)}`
+                          : 'Check unavailable'
+                    }
+                    valueTone={
+                      compliance?.apass.eligible
+                        ? 'text-ok-400'
+                        : compliance?.apass.available
+                          ? 'text-danger-400'
+                          : 'text-mist-400'
+                    }
+                  />
+                  <Row
+                    label="Validator"
+                    value={
+                      compliance === null
+                        ? 'Checking…'
+                        : compliance.validator.available
+                          ? compliance.validator.valid
+                            ? 'Valid'
+                            : 'Rejected'
+                          : 'Check unavailable'
+                    }
+                    valueTone={
+                      compliance?.validator.valid
+                        ? 'text-ok-400'
+                        : compliance?.validator.available
+                          ? 'text-danger-400'
+                          : 'text-mist-400'
+                    }
+                  />
+                </>
+              ) : (
+                <p className="text-[12.5px] leading-relaxed text-mist-500">
+                  Connect a wallet to check its A-Pass and validator standing.
+                </p>
+              )}
+              <div className="h-px bg-white/[0.06]" />
               <Row label="Validator pool" value="Escrow contract" />
               <Row label="Fresh checks" value="Every release" />
-              <Row label="A-Pass tier" value="Eligible · code 4" />
               <Row label="Evidence window" value="300s" />
             </div>
           </section>
@@ -360,11 +435,19 @@ function TradeRow({ trade }: { trade: TradeView }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  valueTone = 'text-mist-300',
+}: {
+  label: string;
+  value: string;
+  valueTone?: string;
+}) {
   return (
     <div className="flex items-start justify-between gap-4">
       <span className="shrink-0 text-[12px] text-mist-500">{label}</span>
-      <span className="text-right font-mono text-[12px] text-mist-300">{value}</span>
+      <span className={`text-right font-mono text-[12px] ${valueTone}`}>{value}</span>
     </div>
   );
 }

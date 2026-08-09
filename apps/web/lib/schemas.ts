@@ -180,5 +180,21 @@ export const auditResponseSchema = z.object({
   records: z.array(auditRecordSchema),
 });
 
+/** Live compliance status for a wallet (dashboard Compliance panel). */
+export const complianceStatusSchema = z.object({
+  address: z.string(),
+  apass: z.object({
+    available: z.boolean(),
+    code: z.number().int().nullable(),
+    eligible: z.boolean(),
+  }),
+  validator: z.object({
+    available: z.boolean(),
+    valid: z.boolean(),
+  }),
+});
+
+export type ComplianceStatus = z.infer<typeof complianceStatusSchema>;
+
 export type ReleaseAllowed = z.infer<typeof releaseAllowedSchema>;
 export type ReleaseDenied = z.infer<typeof releaseDeniedSchema>;

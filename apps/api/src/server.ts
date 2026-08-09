@@ -678,6 +678,50 @@ export function buildServer(deps: {
     };
   });
 
+  /**
+   * Live compliance status for any address (dashboard Compliance panel).
+   * Read-only diagnostic: fresh A-Pass + validator checks for the given
+   * wallet, run server-side so credentials stay on the API. Failures return
+   * available:false rather than an error, so the UI can show "check
+   * unavailable" without breaking the dashboard.
+   */
+  app.get<{ Params: { address: string } }>('/compliance/:address', async (request, reply) => {
+    const address = normalizeAddress(request.params.address);
+    if (!/^0x[0-9a-f]{40}$/.test(address)) {
+      return reply.code(400).send({ error: 'invalid address' });
+    }
+    const chain = config.BRIDGESURE_CHAIN;
+    const atoken = normalizeAddress(config.BRIDGESURE_ATOKEN_ADDRESS);
+    const validatorPool =
+      config.BRIDGESURE_VALIDATOR_POOL_ADDRESS ?? config.BRIDGESURE_VALIDATOR_ADDRESS;
+
+    let apass: { available: boolean; code: number | null; eligible: boolean } = {
+      available: false,
+      code: null,
+      eligible: false,
+    };
+    try {
+      const result = await deps.cleanverse.verifyApass({ chain, atoken, address });
+      apass = { available: true, code: result.code, eligible: result.code === 4 };
+    } catch {
+      // Fail soft: unreachable or malformed response -> unavailable.
+    }
+
+    let validator: { available: boolean; valid: boolean } = { available: false, valid: false };
+    try {
+      const result = await deps.cleanverse.validatorVerify({
+        chain,
+        contract_address: validatorPool,
+        user_address: address,
+      });
+      validator = { available: true, valid: result.valid };
+    } catch {
+      // Fail soft: paused pool or unreachable -> unavailable.
+    }
+
+    return { address, apass, validator };
+  });
+
   return app;
 }
 

@@ -4,6 +4,7 @@ import type {
   AdminOverview,
   AuthChallenge,
   AuthVerifyResult,
+  ComplianceStatus,
   CreateTradeInput,
   DisputeResult,
   DisputeView,
@@ -19,6 +20,7 @@ import {
   auditResponseSchema,
   authChallengeSchema,
   authVerifySchema,
+  complianceStatusSchema,
   disputeResultSchema,
   disputesResponseSchema,
   freezeResultSchema,
@@ -178,6 +180,9 @@ export const api = {
     }),
   // -- admin --
   getAdminOverview: (): Promise<AdminOverview> => request('/admin/overview', adminOverviewSchema),
+  // -- compliance --
+  getComplianceStatus: (address: string): Promise<ComplianceStatus> =>
+    request(`/compliance/${address}`, complianceStatusSchema),
 };
 
 /**

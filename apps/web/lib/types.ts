@@ -154,3 +154,9 @@ export interface AuthVerifyResult {
   expiresAt: number;
   address: string;
 }
+
+export interface ComplianceStatus {
+  address: string;
+  apass: { available: boolean; code: number | null; eligible: boolean };
+  validator: { available: boolean; valid: boolean };
+}

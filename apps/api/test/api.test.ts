@@ -387,6 +387,54 @@ describe('BridgeSure API', () => {
     expect(res.json()).toMatchObject({ held: true, status: 'HOLD' });
   });
 
+  it('compliance/:address distinguishes eligible from non-eligible wallets', async () => {
+    // Eligible: the configured importer has A-Pass code 4 and a valid validator.
+    validParticipant(IMPORTER);
+    const eligible = await app.inject({
+      method: 'GET',
+      url: `/compliance/${IMPORTER.toLowerCase()}`,
+    });
+    expect(eligible.statusCode).toBe(200);
+    expect(eligible.json()).toMatchObject({
+      address: IMPORTER.toLowerCase(),
+      apass: { available: true, eligible: true },
+      validator: { available: true, valid: true },
+    });
+
+    // Non-eligible: an unknown wallet resolves to the mock's default (code 2)
+    // and is never shown as eligible.
+    const stranger = '0x1234567890abcdef1234567890abcdef12345678';
+    const notEligible = await app.inject({
+      method: 'GET',
+      url: `/compliance/${stranger}`,
+    });
+    expect(notEligible.statusCode).toBe(200);
+    const body = notEligible.json() as {
+      apass: { available: boolean; eligible: boolean; code: number | null };
+    };
+    expect(body.apass.available).toBe(true);
+    expect(body.apass.eligible).toBe(false);
+    expect(body.apass.code).not.toBe(4);
+
+    // Malformed address is rejected.
+    const bad = await app.inject({ method: 'GET', url: '/compliance/not-an-address' });
+    expect(bad.statusCode).toBe(400);
+  });
+
+  it('compliance/:address fails soft when the validator is paused', async () => {
+    validParticipant(IMPORTER);
+    mock.setValidator(IMPORTER.toLowerCase(), 'error'); // validator pool error
+    const res = await app.inject({
+      method: 'GET',
+      url: `/compliance/${IMPORTER.toLowerCase()}`,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      apass: { available: true },
+      validator: { available: false, valid: false },
+    });
+  });
+
   it('demo-seeded trades carry the configured escrow and release with it bound', async () => {
     // Demo trades must share the configured escrow so release authorizations
     // bind; a zero-escrow demo trade can never be released (regression guard).
