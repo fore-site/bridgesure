@@ -155,6 +155,12 @@ export const holdResultSchema = z.object({
 
 export const tradesResponseSchema = z.object({ trades: z.array(tradeViewSchema) });
 
+/** Evidence anchored to a milestone (the automatic-release trigger). */
+export const anchorEvidenceSchema = z.object({
+  anchored: z.literal(true),
+  trade: tradeViewSchema,
+});
+
 /** Wallet-proof: one-time signing challenge for a trade. */
 export const authChallengeSchema = z.object({
   challengeId: z.string(),

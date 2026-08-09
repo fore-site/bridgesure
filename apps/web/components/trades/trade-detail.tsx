@@ -45,6 +45,10 @@ export function TradeDetail({ tradeId }: { tradeId: string }) {
   const [audit, setAudit] = useState<AuditRecordView[]>([]);
   const [disputes, setDisputes] = useState<DisputeView[]>([]);
   const [pendingAuth, setPendingAuth] = useState<ReleaseAllowed | null>(null);
+  const [hashedDigest, setHashedDigest] = useState<string | null>(null);
+  const [anchorMilestone, setAnchorMilestone] = useState<1 | 2>(1);
+  const [anchoring, setAnchoring] = useState(false);
+  const [anchorNote, setAnchorNote] = useState<string | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const provingRef = useRef(false);
   // Why the last proof attempt failed: 'denied' (non-party or declined
@@ -169,6 +173,26 @@ export function TradeDetail({ tradeId }: { tradeId: string }) {
     [tradeId, refresh],
   );
 
+  // Anchor the hashed document as milestone evidence — the automatic-release
+  // job then runs fresh checks and releases the milestone without an operator
+  // click. Re-anchor after an unfreeze to re-attempt a blocked milestone.
+  const anchorEvidence = useCallback(async () => {
+    if (!hashedDigest) return;
+    setAnchoring(true);
+    setAnchorNote(null);
+    try {
+      await api.anchorEvidence(tradeId, anchorMilestone, hashedDigest, 'bill-of-lading');
+      setAnchorNote(
+        `Evidence anchored for milestone ${String(anchorMilestone)} — it releases automatically once fresh checks pass.`,
+      );
+      await refresh();
+    } catch (err) {
+      setAnchorNote(err instanceof ApiError ? err.message : 'Failed to anchor evidence');
+    } finally {
+      setAnchoring(false);
+    }
+  }, [tradeId, hashedDigest, anchorMilestone, refresh]);
+
   if (loading) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -279,13 +303,57 @@ export function TradeDetail({ tradeId }: { tradeId: string }) {
               )}
             </div>
             <p className="mt-1.5 text-[12px] leading-relaxed text-mist-500">
-              Hash the shipping document in your browser. If the operator has authorized a release,
-              the digest must match the one signed into the authorization — that anchors the
-              document as the evidence for this trade.
+              Hash the shipping document in your browser. Anchored evidence is the automatic-release
+              trigger: fresh compliance checks run and the milestone releases by itself — no
+              operator click. A frozen participant makes the next automatic attempt fail closed.
             </p>
             <div className="mt-4">
-              <DocumentHasher referenceDigest={pendingAuth?.authorization.evidenceDigest ?? null} />
+              <DocumentHasher
+                referenceDigest={pendingAuth?.authorization.evidenceDigest ?? null}
+                onDigest={(digest) => {
+                  setHashedDigest(digest ? digest : null);
+                }}
+              />
             </div>
+
+            {(seat === 'importer' || seat === 'exporter') && (
+              <div className="mt-4 rounded-xl border border-white/[0.06] bg-ink-900/60 p-3.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <label htmlFor="anchor-milestone" className="text-[12px] text-mist-500">
+                    Anchor as milestone
+                  </label>
+                  <select
+                    id="anchor-milestone"
+                    value={String(anchorMilestone)}
+                    onChange={(e) => {
+                      setAnchorMilestone(Number(e.target.value) === 2 ? 2 : 1);
+                    }}
+                    className="rounded-lg border border-white/[0.08] bg-ink-900/80 px-2.5 py-1.5 font-mono text-[12px] text-white focus:border-bridge-400/50 focus:outline-none"
+                  >
+                    {trade.milestones
+                      .filter((m) => m.status === 'PENDING')
+                      .map((m) => (
+                        <option key={m.id} value={String(m.id)} className="bg-ink-900">
+                          Milestone {String(m.id)}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-primary px-3 py-1.5 text-[12.5px]"
+                    disabled={!hashedDigest || anchoring}
+                    onClick={() => {
+                      void anchorEvidence();
+                    }}
+                  >
+                    {anchoring ? 'Anchoring…' : 'Anchor as evidence'}
+                  </button>
+                </div>
+                {anchorNote && (
+                  <p className="mt-2 text-[11.5px] leading-relaxed text-mist-400">{anchorNote}</p>
+                )}
+              </div>
+            )}
           </section>
         </div>
 

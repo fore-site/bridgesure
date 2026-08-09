@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  anchorMilestoneEvidence,
   authReplay,
   authorizationBinds,
   createTrade,
@@ -149,6 +150,20 @@ describe('state transitions', () => {
     expect(trade.status).toBe('HOLD');
     trade = refund(trade);
     expect(trade.status).toBe('REFUNDED');
+  });
+
+  it('anchoring evidence marks the pending milestone and leaves state unchanged', () => {
+    const trade = anchorMilestoneEvidence(makeFundedTrade(), 1, '0xev1');
+    expect(trade.milestones[0]?.evidenceHash).toBe('0xev1');
+    expect(trade.milestones[1]?.evidenceHash).toBeNull();
+    expect(trade.status).toBe('FUNDED');
+  });
+
+  it('anchoring never mutates a released milestone (evidence is bound at release)', () => {
+    const released = markMilestoneReleased(makeFundedTrade(), 1, '0xbound');
+    const trade = anchorMilestoneEvidence(released, 1, '0xlate');
+    expect(trade.milestones[0]?.evidenceHash).toBe('0xbound');
+    expect(trade.milestones[0]?.status).toBe('RELEASED');
   });
 });
 

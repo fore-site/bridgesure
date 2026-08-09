@@ -68,8 +68,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <SlidersHorizontalIcon size={12} />
               Operator actions
             </span>
-            Releases run fresh A-Pass + validator checks and sign bounded authorizations for the
-            exporter to claim on-chain.
+            Releases run fresh A-Pass + validator checks and sign bounded authorizations. Automatic
+            when milestone evidence is anchored — no click needed.
           </div>
           <Link
             href="/trades"

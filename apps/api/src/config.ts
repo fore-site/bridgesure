@@ -84,6 +84,16 @@ const envSchema = z.object({
     (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
     z.boolean().default(true),
   ),
+  // Automatic milestone releases: a server job watches funded trades and,
+  // when a pending milestone has anchored evidence, runs fresh checks, signs
+  // the bounded authorization and advances the trade — no operator click.
+  // A frozen/ineligible participant makes the next automatic attempt fail
+  // closed (recorded in the audit trail; balances unchanged).
+  BRIDGESURE_AUTO_RELEASE_ENABLED: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim().toLowerCase() !== 'false' : value),
+    z.boolean().default(true),
+  ),
+  BRIDGESURE_AUTO_RELEASE_INTERVAL_MS: z.coerce.number().int().min(2_000).default(10_000),
 });
 
 export type Config = z.infer<typeof envSchema>;

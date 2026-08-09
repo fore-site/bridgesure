@@ -1,9 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { keccak256, toHex } from 'viem';
 import { MockCleanverseClient } from '@bridgesure/cleanverse/mocks';
+import { createTrade, markFunded } from '@bridgesure/domain';
 import { buildServer } from '../src/server.js';
 import { makeAuditRecord } from '../src/audit.js';
+import { SqliteRegistry } from '../src/db/sqlite-registry.js';
 
 const IMPORTER = '0x4aa29d0188d81A39cBd2BF11C1791aF3fF294E3A';
 const EXPORTER = '0xaABb93dA3999765dD48a40d70054190AE3361506';
@@ -382,6 +385,98 @@ describe('BridgeSure API', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ held: true, status: 'HOLD' });
+  });
+
+  it('demo-seeded trades carry the configured escrow and release with it bound', async () => {
+    // Demo trades must share the configured escrow so release authorizations
+    // bind; a zero-escrow demo trade can never be released (regression guard).
+    const ESCROW = '0x41646afc2d9b4f54144401d02dc3fc9f8008354d';
+    const env = makeEnv();
+    env.BRIDGESURE_SEED_DEMO_TRADES = 'true';
+    env.BRIDGESURE_ESCROW_ADDRESS = ESCROW;
+    const seededApp = buildServer({ cleanverse: mock, env });
+    await seededApp.ready();
+
+    const res = await seededApp.inject({ method: 'GET', url: '/trades' });
+    const trades = res.json().trades as { id: string; escrow: string; status: string }[];
+    expect(trades.length).toBeGreaterThan(1); // configured + demo seeds
+    expect(trades.every((t) => t.escrow === ESCROW)).toBe(true);
+
+    // Pick a demo trade (not the configured one) and release it: the bind must
+    // pass because its escrow now matches the configured address.
+    const demo = trades.find((t) => t.id !== TRADE_ID) as { id: string };
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    await seededApp.inject({
+      method: 'POST',
+      url: `/trades/${demo.id}/fund-intent`,
+      headers: operatorHeaders(),
+      payload: { amount: '60000000' },
+    });
+    const release = await seededApp.inject({
+      method: 'POST',
+      url: `/trades/${demo.id}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'demo-trade-release' },
+    });
+    expect(release.statusCode).toBe(200);
+    expect(release.json().decision).toBe('allowed');
+    await seededApp.close();
+  });
+
+  it('boot heals a pre-existing zero-escrow demo trade to the configured escrow', async () => {
+    // The production fix: rows seeded before the escrow change carried the
+    // zero address and could never bind a release. Boot must heal them in
+    // place, preserving their trade state.
+    const ESCROW = '0x41646afc2d9b4f54144401d02dc3fc9f8008354d';
+    const dbFile = `/tmp/bridgesure-heal-${randomUUID()}.sqlite`;
+
+    // 1. Simulate a pre-fix database: a demo trade with the zero escrow,
+    // already FUNDED (state that must survive the heal).
+    const legacy = new SqliteRegistry(dbFile);
+    await legacy.init();
+    const legacyTrade = createTrade({
+      id: keccak256(toHex('bridgesure-demo-trade-002')),
+      chainId: BigInt(10143),
+      escrow: '0x0000000000000000000000000000000000000000',
+      importer: IMPORTER.toLowerCase(),
+      exporter: EXPORTER.toLowerCase(),
+      token: ATOKEN.toLowerCase(),
+      totalAmount: 60n * 10n ** 6n,
+      milestoneOneAmount: 30n * 10n ** 6n,
+      milestoneTwoAmount: 30n * 10n ** 6n,
+    });
+    await legacy.saveTrade(markFunded(legacyTrade));
+    await legacy.close();
+
+    // 2. Boot with the fixed code against that same file.
+    const env = makeEnv();
+    env.BRIDGESURE_SEED_DEMO_TRADES = 'true';
+    env.BRIDGESURE_ESCROW_ADDRESS = ESCROW;
+    env.BRIDGESURE_DB_FILE = dbFile;
+    const healedApp = buildServer({ cleanverse: mock, env });
+    await healedApp.ready();
+
+    const res = await healedApp.inject({ method: 'GET', url: '/trades' });
+    const healed = (res.json().trades as { id: string; escrow: string; status: string }[]).find(
+      (t) => t.id === legacyTrade.id,
+    );
+    expect(healed).toBeDefined();
+    expect(healed?.escrow).toBe(ESCROW); // healed
+    expect(healed?.status).toBe('FUNDED'); // state preserved
+
+    // 3. The healed trade releases: the bind now passes.
+    validParticipant(IMPORTER);
+    validParticipant(EXPORTER);
+    const release = await healedApp.inject({
+      method: 'POST',
+      url: `/trades/${legacyTrade.id}/milestones/1/release`,
+      headers: operatorHeaders(),
+      payload: { idempotencyKey: 'healed-release' },
+    });
+    expect(release.statusCode).toBe(200);
+    expect(release.json().decision).toBe('allowed');
+    await healedApp.close();
   });
 
   it('API-2: audit records redact secrets and tokenized URLs', () => {

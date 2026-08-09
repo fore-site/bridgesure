@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { isHex, keccak256, toHex, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import {
+  anchorMilestoneEvidence,
   createTrade,
   enterHold,
   markFunded,
@@ -18,6 +19,7 @@ import type { TradeRegistry } from './db/registry.js';
 import { ReleaseOrchestrator, type ReleaseOutcome } from './orchestrator.js';
 import { makeAuditRecord } from './audit.js';
 import { createWalletAuth } from './wallet-auth.js';
+import { createAutoReleaseScheduler } from './auto-release.js';
 
 const releaseBodySchema = z.object({
   milestoneId: z.union([z.literal(1), z.literal(2)]),
@@ -36,6 +38,11 @@ const holdBodySchema = z.object({
 
 const fundBodySchema = z.object({
   amount: z.string().regex(/^\d+$/, 'amount must be a decimal string of base units'),
+});
+
+const anchorEvidenceBodySchema = z.object({
+  digest: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'digest must be 0x-prefixed 64 hex chars'),
+  label: z.string().max(200).optional(),
 });
 
 const createTradeBodySchema = z.object({
@@ -122,6 +129,14 @@ export function buildServer(deps: {
     cleanverse: deps.cleanverse,
   });
 
+  // Evidence-triggered automatic releases: funded trades with anchored
+  // milestone evidence are released by this job without an operator click.
+  const autoRelease = createAutoReleaseScheduler({
+    registry,
+    orchestrator,
+    intervalMs: config.BRIDGESURE_AUTO_RELEASE_INTERVAL_MS,
+  });
+
   /** Seed the configured (live) trade; optionally add synthetic demo trades. */
   async function seedRegistry(): Promise<void> {
     const configured = createTrade({
@@ -142,6 +157,12 @@ export function buildServer(deps: {
       const exporter = normalizeAddress(config.BRIDGESURE_EXPORTER_ADDRESS);
       const token = normalizeAddress(config.BRIDGESURE_ATOKEN_ADDRESS);
       const zero = '0x0000000000000000000000000000000000000000';
+      // Demo trades must carry the configured escrow (same as the configured
+      // trade) so release authorizations bind correctly. The zero address was
+      // used as a placeholder; heal any rows seeded before this fix.
+      const demoEscrow = normalizeAddress(
+        config.BRIDGESURE_ESCROW_ADDRESS ?? '0x0000000000000000000000000000000000000000',
+      );
       const demoSeeds: Omit<Parameters<typeof createTrade>[0], 'chainId' | 'escrow'>[] = [
         {
           id: keccak256(toHex('bridgesure-demo-trade-002')),
@@ -168,9 +189,16 @@ export function buildServer(deps: {
         const demo = createTrade({
           ...seed,
           chainId: BigInt(config.BRIDGESURE_CHAIN_ID),
-          escrow: zero,
+          escrow: demoEscrow,
         });
-        if (!(await registry.getTrade(demo.id))) await registry.saveTrade(demo);
+        const existing = await registry.getTrade(demo.id);
+        if (!existing) {
+          await registry.saveTrade(demo);
+        } else if (existing.escrow === zero && demoEscrow !== zero) {
+          // Heal a pre-fix demo row: releases bind the configured escrow, so
+          // a zero-escrow trade can never be released. Preserve trade state.
+          await registry.saveTrade({ ...existing, escrow: demoEscrow });
+        }
       }
     }
   }
@@ -194,9 +222,11 @@ export function buildServer(deps: {
   app.addHook('onReady', async () => {
     await registry.init();
     await seedRegistry();
+    if (config.BRIDGESURE_AUTO_RELEASE_ENABLED) autoRelease.start();
   });
 
   app.addHook('onClose', async () => {
+    autoRelease.stop();
     await registry.close();
   });
 
@@ -267,6 +297,47 @@ export function buildServer(deps: {
       return { funded: true, amount: amount.toString(), status: updated.status };
     },
   );
+
+  /**
+   * Anchor a document digest as evidence for a pending milestone. This is the
+   * automatic-release trigger: the server job releases the milestone (fresh
+   * checks + signed authorization) without an operator click once evidence is
+   * anchored and both parties are compliant. Anchor again after an unfreeze
+   * to re-attempt a previously blocked milestone.
+   */
+  app.post<{
+    Params: { id: string; milestoneId: string };
+    Body: { digest?: string; label?: string };
+  }>('/trades/:id/milestones/:milestoneId/evidence', async (request, reply) => {
+    const { id, milestoneId } = request.params;
+    const trade = await registry.getTrade(id);
+    if (!trade) return reply.code(404).send({ error: 'trade not found' });
+    const parsed = anchorEvidenceBodySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'invalid evidence payload' });
+    const parsedMilestone = z.union([z.literal(1), z.literal(2)]).safeParse(Number(milestoneId));
+    if (!parsedMilestone.success) {
+      return reply.code(400).send({ error: 'milestone must be 1 or 2' });
+    }
+    const updated = anchorMilestoneEvidence(trade, parsedMilestone.data, parsed.data.digest);
+    await registry.saveTrade(updated);
+    await registry.appendAudit(
+      makeAuditRecord({
+        traceId: request.traceId,
+        actorRole: String(request.headers['x-operator-role'] ?? 'party'),
+        operation: 'anchor-evidence',
+        decision: 'allowed',
+        tradeId: trade.id,
+        milestoneId: parsedMilestone.data,
+        token: trade.token,
+        amount: 0n,
+        context: {
+          evidenceDigest: parsed.data.digest,
+          ...(parsed.data.label !== undefined ? { label: parsed.data.label } : {}),
+        },
+      }),
+    );
+    return reply.code(201).send({ trade: toTradeView(updated), anchored: true });
+  });
 
   app.post<{ Params: { id: string; milestoneId: string }; Body: { idempotencyKey?: string } }>(
     '/trades/:id/milestones/:milestoneId/release',

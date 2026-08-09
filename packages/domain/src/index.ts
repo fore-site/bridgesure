@@ -6,6 +6,7 @@ export {
   markFunded,
   decideRelease,
   markMilestoneReleased,
+  anchorMilestoneEvidence,
   enterHold,
   refund,
   releasedAmount,

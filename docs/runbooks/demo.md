@@ -25,14 +25,16 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
 4. Open http://localhost:3000 — the landing page explains the product; "Open the app" takes
    you to the trading-party dashboard (/dashboard) with balances, TVL, contract alerts and
    milestone deadlines.
-5. Open the **operator portal** (link in the app header, or /admin/dashboard): **Fund escrow**,
-   then **Release milestone one** (fresh checks pass, bounded authorization signed), then
-   **Freeze exporter credential** (confirm), then **Release milestone two** — it fails closed
-   with `APASS_NOT_VALID`, the milestone card and audit feed show the reason, and the balances
-   are unchanged. The party-facing routes (/trades, /trades/[trade_id], /disputes) mirror the
-   same state: the connected wallet decides the seat, and the exporter seat claims the signed
-   authorization from the shared trade view. **Export** downloads the audit packet. Trades,
-   audit trails, disputes and evidence persist in the configured registry across restarts.
+5. **Fund escrow** from the operator portal (/admin/dashboard). Then open the trade in the
+   party-facing app (/trades/[trade_id]) and anchor a document: hash a bill of lading in the
+   browser and **Anchor as evidence** for milestone one. Releases are automatic — a server job
+   runs fresh A-Pass + validator checks and releases the milestone by itself, no operator
+   click. Then **Freeze exporter credential** from the operator portal, anchor milestone-two
+   evidence, and the next automatic attempt fails closed with `APASS_NOT_VALID` — the milestone
+   card and audit feed show the reason and the balances are unchanged. **Export** downloads the
+   audit packet. Trades, audit trails, disputes and evidence persist in the configured
+   registry across restarts. (Set `BRIDGESURE_AUTO_RELEASE_ENABLED=false` to revert to the
+   manual operator release buttons.)
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 

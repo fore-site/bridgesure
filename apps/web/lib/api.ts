@@ -15,6 +15,7 @@ import type {
 } from './types';
 import {
   adminOverviewSchema,
+  anchorEvidenceSchema,
   auditResponseSchema,
   authChallengeSchema,
   authVerifySchema,
@@ -107,6 +108,11 @@ export const api = {
       body: JSON.stringify(input),
     }),
   getAudit: (tradeId: string) => request(`/trades/${tradeId}/audit`, auditResponseSchema),
+  anchorEvidence: (tradeId: string, milestoneId: 1 | 2, digest: string, label?: string) =>
+    request(`/trades/${tradeId}/milestones/${String(milestoneId)}/evidence`, anchorEvidenceSchema, {
+      method: 'POST',
+      body: JSON.stringify({ digest, ...(label !== undefined ? { label } : {}) }),
+    }),
   getAuthChallenge: (tradeId: string): Promise<AuthChallenge> =>
     request(`/trades/${tradeId}/auth/challenge`, authChallengeSchema, { method: 'POST' }),
   verifyAuth: (

@@ -99,6 +99,26 @@ function milestoneIdOutOfSequence(trade: Trade, milestoneId: 1 | 2): boolean {
   return trade.milestones[0].status !== 'RELEASED';
 }
 
+/**
+ * Anchor a document digest as evidence for a pending milestone. This is the
+ * automatic-release trigger: the API's scheduler releases the milestone once
+ * evidence is anchored and fresh checks pass. Released milestones are never
+ * mutated here — their evidenceHash is bound at release time.
+ */
+export function anchorMilestoneEvidence(
+  trade: Trade,
+  milestoneId: 1 | 2,
+  evidenceHash: string,
+): Trade {
+  const update = (m: Milestone): Milestone =>
+    m.id === milestoneId && m.status === 'PENDING' ? { ...m, evidenceHash } : m;
+  const milestones: [Milestone, Milestone] = [
+    update(trade.milestones[0]),
+    update(trade.milestones[1]),
+  ];
+  return touch({ ...trade, milestones });
+}
+
 export function markMilestoneReleased(
   trade: Trade,
   milestoneId: 1 | 2,
