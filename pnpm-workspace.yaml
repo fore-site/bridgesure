@@ -10,7 +10,4 @@ allowBuilds:
   # SQLite registry driver works without manual build steps.
   better-sqlite3: true
   esbuild: true
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
-  - better-sqlite3
+  sharp: true
