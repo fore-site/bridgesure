@@ -33,8 +33,10 @@ credentials) and the **live sequence** (Monad Testnet + Cleanverse sandbox).
    evidence, and the next automatic attempt fails closed with `APASS_NOT_VALID` — the milestone
    card and audit feed show the reason and the balances are unchanged. **Export** downloads the
    audit packet. Trades, audit trails, disputes and evidence persist in the configured
-   registry across restarts. (Set `BRIDGESURE_AUTO_RELEASE_ENABLED=false` to revert to the
-   manual operator release buttons.)
+   registry across restarts. The operator portal keeps a **manual release fallback** (labeled as
+   such) — same fresh checks and signed authorization, for cases without anchored evidence or
+   when automation is off. Set `BRIDGESURE_AUTO_RELEASE_ENABLED=false` to disable the automatic
+   job entirely.
 
 ## Live Demo (Monad Testnet + Cleanverse sandbox)
 

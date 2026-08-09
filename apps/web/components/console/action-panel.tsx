@@ -78,6 +78,13 @@ export function ActionPanel({
 
         <div className="h-px bg-white/[0.06]" />
 
+        <div className="mt-3 rounded-lg border border-white/[0.06] bg-ink-900/50 px-3 py-2.5 text-[11.5px] leading-relaxed text-mist-500">
+          <span className="font-semibold text-mist-300">Automatic release is active</span> —
+          evidence-anchored milestones release on their own once fresh checks pass. The buttons
+          below are the manual fallback: same fresh A-Pass + validator checks, same bounded signed
+          authorization, no click needed for the automatic path.
+        </div>
+
         <button
           type="button"
           className={`w-full ${canReleaseM1 ? 'btn-primary' : 'btn-secondary'} py-3`}
@@ -88,10 +95,11 @@ export function ActionPanel({
         >
           {busy === 'release-1' ? <Spinner /> : <HandCoinsIcon size={16} weight="bold" />}
           Release milestone one
+          <span className="opacity-70">· fallback</span>
         </button>
         <p className="text-[11.5px] leading-relaxed text-mist-500">
-          Runs fresh A-Pass and validator checks for both parties, then signs a bounded
-          authorization. Any negative result fails the release.
+          Manual fallback: runs fresh A-Pass and validator checks for both parties, then signs a
+          bounded authorization. Any negative result fails the release.
         </p>
 
         <div className="h-px bg-white/[0.06]" />
@@ -168,7 +176,7 @@ export function ActionPanel({
             ? 'Already attempted — the denial is recorded. Funds remain in escrow.'
             : frozen
               ? 'The exporter is frozen. Expect this release to fail closed with a reason code — and the balances not to move.'
-              : 'Fresh checks again, in the same attempt, seconds before funds move.'}
+              : 'Manual fallback — fresh checks again, in the same attempt, seconds before funds move.'}
         </p>
 
         <div className="h-px bg-white/[0.06]" />
