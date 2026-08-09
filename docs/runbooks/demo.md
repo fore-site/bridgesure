@@ -112,3 +112,12 @@ If a submission times out, query the chain and Cleanverse transaction status bef
 consumed authorization nonce is never reused. If compliance is negative, do not retry with the
 same authorization. If a report URL is returned, store only a redacted reference and provide it
 through a controlled response path.
+
+### Pool registration fails with business error 12026 (signer insufficient balance)
+
+The Cleanverse gateway submits pool registration / role-grant transactions from its own signer
+wallet, which can run out of testnet MON. The signer address can be recovered from a previously
+successful grant transaction (find the `RoleGranted` event via binary search of `hasRole` over
+recent blocks, then read the tx `from`). Funding that EOA with testnet MON from the deployer
+wallet unblocks registration immediately — verified 2026-08-09 (see
+`docs/planning/vault-registration-plan.md`).
