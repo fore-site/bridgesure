@@ -25,7 +25,7 @@ and the [demo runbook](docs/runbooks/demo.md)).
 
 ```bash
 pnpm install              # install dependencies (pnpm only)
-pnpm dev                  # API (:4000, demo mode) + web console (:3000)
+pnpm dev                  # API (:4000, demo mode) + web app (:3000)
 pnpm check                # format + lint + typecheck + all non-live tests
 pnpm test:contracts       # forge test
 

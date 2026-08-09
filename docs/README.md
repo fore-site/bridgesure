@@ -5,10 +5,12 @@
 - **MVP implemented (2026-08-08).** The typed Cleanverse transport, the escrow state
   machine, the `BridgeSureEscrow` contract, the release-orchestration API, and the web
   console (`apps/web`) are complete, with passing suites (`pnpm check`, `forge test` 21/21).
-- **Web console shipped.** A product landing page and a compliance console at `apps/web`:
-  trade overview, milestone track with balances, action panel (fund, release, freeze, hold),
-  authorization evidence, and an exportable audit trail. The browser talks only to the API;
-  Cleanverse calls stay server-side.
+- **Web app shipped.** A product landing page and the trading-party app at `apps/web`:
+  a consumer dashboard (balances, TVL, alerts, milestone deadlines), a shared trade view
+  (`/trades/[id]` — the connected wallet decides the importer/exporter seat), and a
+  Resolution Center for disputes with evidence and multi-sig review. Administrative functions
+  live in an isolated operator portal (`/admin`) with its own layout, system overview, and
+  dispute queue. The browser talks only to the API; Cleanverse calls stay server-side.
 - **Demo flow green with mocks:** fund, release milestone one, block milestone two after
   participant invalidation (balances unchanged), and export the audit packet. The API runs in
   `BRIDGESURE_CLEANVERSE_MODE=demo` (default) with a scripted sandbox mock — no network or
